@@ -1,0 +1,13 @@
+{
+  "name": "we-hung-out-zine-engine",
+  "version": "0.1.0",
+  "description": "Deterministic layout engine + print-ready PDF renderer for the 'We hung out' zine product. Turns 8 editorial page specs into a single foldable 8-page zine sheet.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "demo": "node demo/generate.js"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}
