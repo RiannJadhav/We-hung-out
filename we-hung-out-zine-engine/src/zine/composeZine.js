@@ -9,7 +9,7 @@
 
 import { PRIMITIVES } from "../layout/primitives.js";
 
-const MIN_PHOTOS_PER_PRIMITIVE = {
+export const MIN_PHOTOS_PER_PRIMITIVE = {
   FULL_BLEED: 1,
   HERO_IMAGE: 1,
   IMAGE_WITH_CAPTION: 1,

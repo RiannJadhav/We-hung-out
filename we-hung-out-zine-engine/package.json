@@ -5,9 +5,11 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "demo": "node demo/generate.js"
+    "demo": "node demo/generate.js",
+    "demo:ai": "node demo/runAIPipeline.js"
   },
   "dependencies": {
+    "jimp": "^1.6.1",
     "pdf-lib": "^1.17.1"
   }
 }
