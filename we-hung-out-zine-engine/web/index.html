@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   --flash-blue:#2b3bff; --flash-yellow:#ffd93b; --print-white:#fbfaf6;
@@ -73,12 +74,26 @@ input[type=file]{display:none}
   var app=document.getElementById('app');
   var MAX_GRACE=5;
   var STAGES=["Finding your photos...","Removing duplicates...","Finding the best moments...","Building your story...","Composing your zine..."];
-  var S={phase:'home',name:'Tonight',start:0,end:0,photos:[],savedCount:0,grace:0,stage:0,seen:{}};
+  // Public by design -- Supabase's anon key is meant to ship in client code;
+  // the RLS policies on the project are what actually guard the data.
+  // Guarded: if the CDN script didn't load (offline, blocked, flaky
+  // network), the app should still render the roll screens locally
+  // rather than crash outright -- uploads/develop just won't work.
+  var sb=null;
+  try{
+    if(window.supabase){
+      sb=window.supabase.createClient(
+        'https://orrxslxansacwqfuxqco.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ycnhzbHhhbnNhY3dxZnV4cWNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5MzU2NTMsImV4cCI6MjEwNjUxMTY1M30.dGnBt44uWt4YpK6DEhj29vfW4hvRF8hsxag22oXgLfU'
+      );
+    }
+  }catch(e){console.error('Supabase failed to initialize',e);}
+  var S={phase:'home',name:'Tonight',start:0,end:0,photos:[],savedCount:0,grace:0,stage:0,seen:{},rollId:null,devError:null,zine:null};
 
   function load(){try{var r=JSON.parse(localStorage.getItem('whoRoll')||'null');
     if(r&&r.start&&r.end&&(r.phase==='roll'||r.phase==='developing'||r.phase==='ready')){
-      S.phase=r.phase==='developing'?'roll':r.phase;S.name=r.name;S.start=r.start;S.end=r.end;S.savedCount=r.count||0;S.grace=r.grace||0;}}catch(e){}}
-  function save(){try{localStorage.setItem('whoRoll',JSON.stringify({phase:S.phase,name:S.name,start:S.start,end:S.end,count:count(),grace:S.grace}));}catch(e){}}
+      S.phase=r.phase==='developing'?'roll':r.phase;S.name=r.name;S.start=r.start;S.end=r.end;S.savedCount=r.count||0;S.grace=r.grace||0;S.rollId=r.rollId||null;}}catch(e){}}
+  function save(){try{localStorage.setItem('whoRoll',JSON.stringify({phase:S.phase,name:S.name,start:S.start,end:S.end,count:count(),grace:S.grace,rollId:S.rollId}));}catch(e){}}
   function clear(){try{localStorage.removeItem('whoRoll');}catch(e){}}
   function count(){return Math.max(S.photos.length,S.savedCount);}
   function fmt(ms){var d=new Date(ms),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+(m<10?'0':'')+m+' '+ap;}
@@ -114,7 +129,16 @@ input[type=file]{display:none}
       var t=function(id){var v=document.getElementById(id).value.split(':');var d=new Date();d.setHours(+v[0],+v[1],0,0);return d.getTime();};
       var a=t('st'),b=t('en');if(b<=a)b+=86400000;
       S.name=(document.getElementById('nm').value||'Tonight').trim();S.start=a;S.end=b;
-      S.photos=[];S.seen={};S.savedCount=0;S.grace=0;S.phase='roll';save();render();};
+      S.photos=[];S.seen={};S.savedCount=0;S.grace=0;S.phase='roll';S.rollId=null;save();render();
+      if(sb){
+        sb.from('rolls').insert({
+          name:S.name,start_at:new Date(a).toISOString(),end_at:new Date(b).toISOString(),style:'DOCUMENTARY',status:'active'
+        }).select().single().then(function(r){
+          if(r.error){console.error(r.error);return;}
+          S.rollId=r.data.id;save();
+        });
+      }
+    };
   }
 
   function roll(){
@@ -127,6 +151,7 @@ input[type=file]{display:none}
         :'<div class="time" id="tl">'+left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining')+'</div>')+'</div>';
     html+='<div class="strip" id="strip"></div>';
     if(closed)html+='<p class="note">Your roll is closed. Add up to '+MAX_GRACE+' final photos, like that last group shot, before we develop it.</p>';
+    if(closed&&S.devError)html+='<p class="tiny" style="color:#ffb4b4">Last attempt failed: '+esc(S.devError)+'</p>';
     html+='<div class="spacer"></div>';
     var canAdd=st==='active'||(closed&&S.grace<MAX_GRACE);
     html+='<input type="file" id="file" accept="image/*" multiple>'+
@@ -137,20 +162,48 @@ input[type=file]{display:none}
     var file=document.getElementById('file');
     document.getElementById('add').onclick=function(){file.click();};
     file.onchange=function(){addFiles(file.files,closed);file.value='';};
-    if(closed)document.getElementById('dev').onclick=function(){S.phase='developing';S.stage=0;render();};
+    if(closed)document.getElementById('dev').onclick=function(){startDevelop();};
     else document.getElementById('skip').onclick=function(){S.end=Date.now();save();render();};
   }
 
   function addFiles(list,closed){
     var arr=Array.prototype.slice.call(list);
+    var toUpload=[];
     for(var i=0;i<arr.length;i++){
       var f=arr[i],k=f.name+'|'+f.size+'|'+f.lastModified;
       if(S.seen[k])continue;
       if(closed&&S.grace>=MAX_GRACE)break;
       S.seen[k]=1;if(closed)S.grace++;
       S.photos.push({k:k,url:URL.createObjectURL(f)});
+      toUpload.push({f:f,takenAt:f.lastModified?new Date(f.lastModified):new Date()});
     }
     save();render();
+    toUpload.forEach(function(item){uploadPhoto(item.f,item.takenAt,closed);});
+  }
+
+  // Uploads happen in the background -- the photo strip already shows the
+  // local preview instantly, so a slow or dropped upload doesn't block the
+  // UI. If it fails, the photo simply won't be in the roll when "Develop"
+  // runs; worth surfacing more clearly once this moves past a prototype.
+  function waitForRollId(tries){
+    tries=tries||0;
+    return new Promise(function(resolve,reject){
+      (function check(){
+        if(S.rollId)return resolve(S.rollId);
+        if(tries++>40)return reject(new Error('no roll id'));
+        setTimeout(check,150);
+      })();
+    });
+  }
+  function uploadPhoto(file,takenAt,isGrace){
+    if(!sb)return;
+    waitForRollId().then(function(rollId){
+      var path=rollId+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'-'+file.name;
+      return sb.storage.from('photos').upload(path,file).then(function(up){
+        if(up.error)throw up.error;
+        return sb.from('roll_photos').insert({roll_id:rollId,storage_path:path,taken_at:takenAt.toISOString(),is_grace:!!isGrace});
+      });
+    }).catch(function(e){console.error('photo upload failed',e);});
   }
   function drawStrip(){
     var el=document.getElementById('strip');if(!el)return;
@@ -159,18 +212,51 @@ input[type=file]{display:none}
     el.scrollLeft=el.scrollWidth;
   }
 
+  // The real pipeline doesn't report incremental progress back to the
+  // browser (one request, one response) -- this just cycles the same
+  // staged copy from the product spec while that request is in flight,
+  // so the wait still feels like something is happening rather than a
+  // frozen screen. It is not reporting real per-photo progress.
+  var devTimer=null;
   function developing(){
     var frames='';for(var i=0;i<STAGES.length;i++)frames+='<div class="frame'+(i<S.stage?' done':i===S.stage?' now':'')+'"></div>';
     app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">Developing your night</h2>'+
       '<div class="film">'+frames+'</div><p class="note" style="font-size:30px">'+STAGES[S.stage]+'</p>'+
-      '<p class="tiny">In the real app this takes about 30 minutes, on purpose. For now it is a quick preview.</p>';
+      '<p class="tiny">This can take a little while, especially the first time. Don\'t close this tab.</p>';
+  }
+  function startDevelop(){
+    if(!sb||!S.rollId){S.devError='Not connected -- check your connection and try again.';render();return;}
+    S.phase='developing';S.stage=0;S.devError=null;save();render();
+    devTimer=setInterval(function(){S.stage=(S.stage+1)%STAGES.length;developing();},2200);
+    fetch('/api/develop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rollId:S.rollId})})
+      .then(function(r){return r.json().then(function(body){return {ok:r.ok,body:body};});})
+      .then(function(res){
+        clearInterval(devTimer);
+        if(!res.ok)throw new Error(res.body&&res.body.error?res.body.error:'Something went wrong');
+        S.zine=res.body;S.phase='ready';save();render();
+      })
+      .catch(function(e){
+        clearInterval(devTimer);
+        S.devError=e.message||'Something went wrong';S.phase='roll';save();render();
+      });
   }
 
   function ready(){
-    app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h1 class="big">Your zine is ready.</h1>'+
-      '<p>This is where you will flip through your zine and download the print sheet. That part is coming in the next build.</p>'+
-      '<div class="spacer"></div><button class="btn" id="again">Start another roll</button>';
-    document.getElementById('again').onclick=function(){clear();S={phase:'home',name:'Tonight',start:0,end:0,photos:[],savedCount:0,grace:0,stage:0,seen:{}};render();};
+    var z=S.zine;
+    var html='<div class="brand">'+esc(S.name)+'</div><h1 class="big">Your zine is ready.</h1>';
+    if(z&&z.printUrl){
+      html+='<p>Flip through it, or go straight to the print sheet \u2014 print single-sided, fold, done.</p>'+
+      (z.usedRealAI?'':'<p class="tiny">This selection used the offline fallback, not real AI analysis \u2014 add an ANTHROPIC_API_KEY to the server to change that.</p>')+
+      '<div class="spacer"></div>'+
+      '<a class="btn" style="text-decoration:none;text-align:center;display:block" href="'+z.printUrl+'" target="_blank" rel="noopener">Download print sheet (PDF)</a>'+
+      '<div style="height:12px"></div>'+
+      '<a class="btn alt" style="text-decoration:none;text-align:center;display:block" href="'+z.previewUrl+'" target="_blank" rel="noopener">View zine preview</a>';
+    } else {
+      html+='<p>Something went wrong putting this together.</p>';
+    }
+    html+='<div class="spacer"></div><button class="link" id="again">Start another roll</button>';
+    app.innerHTML=html;
+    document.getElementById('again').onclick=function(){clear();S={phase:'home',name:'Tonight',start:0,end:0,photos:[],savedCount:0,grace:0,stage:0,seen:{},rollId:null,devError:null,zine:null};render();};
   }
 
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}

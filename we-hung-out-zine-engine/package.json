@@ -9,6 +9,7 @@
     "demo:ai": "node demo/runAIPipeline.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
     "jimp": "^1.6.1",
     "pdf-lib": "^1.17.1"
   }

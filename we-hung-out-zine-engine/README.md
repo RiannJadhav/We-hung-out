@@ -175,14 +175,57 @@ framework) so it's easy to open directly or deploy as-is.
   real PDF generation, and a real ~30-minute async job) is the next
   piece of work, not this one.
 
+## The backend (Supabase + /api/develop)
+
+- **Database**: `rolls`, `roll_photos`, `zines` tables in Supabase
+  (project `we-hung-out`, ref `orrxslxansacwqfuxqco`). RLS is **on but
+  wide open** (`using (true)`) on all three, since there's no user
+  accounts yet -- anyone with the anon key (which is public by design)
+  can read/write any roll. Fine for a prototype with no real users;
+  needs real policies once there's auth.
+- **Storage**: two public buckets, `photos` (what people upload during a
+  roll) and `zines` (the finished print/preview PDFs).
+- **`web/index.html`** now writes real rows: starting a roll inserts
+  into `rolls`; adding a photo uploads it to the `photos` bucket and
+  inserts a `roll_photos` row (in the background -- the local photo
+  strip updates instantly regardless of upload success, so a flaky
+  upload doesn't block the UI, but also isn't surfaced clearly yet if
+  it fails).
+- **`api/develop.js`** is a real Vercel serverless function. It fetches
+  a roll's photos from storage, runs the actual Stage 1-4 pipeline
+  (`src/ai/pipeline.js`), renders the actual zine (`src/render`), uploads
+  the print + preview PDFs to the `zines` bucket, and returns their
+  public URLs. The "Develop my roll" button calls this directly and
+  waits for the response -- the staged "Removing duplicates.../Building
+  your story..." copy just cycles on a timer while that request is in
+  flight, it isn't wired to real per-photo progress.
+- **No environment variables needed yet.** The Supabase URL + anon key
+  are hardcoded in both `web/index.html` and `api/_lib/supabaseClient.js`
+  (safe to do -- that's what the anon key is for). The only env var that
+  matters is optional: set `ANTHROPIC_API_KEY` in Vercel's Environment
+  Variables to get real vision analysis instead of the offline
+  heuristic fallback.
+- **Timeout risk, flagged honestly**: `api/develop.js` runs the whole
+  pipeline synchronously in one request (`maxDuration: 60` is set in
+  the file). That's fine for a normal-sized roll. A roll with a lot of
+  photos, especially with a real `ANTHROPIC_API_KEY` doing one vision
+  call per photo, could run long enough to hit Vercel's function time
+  limit for your plan -- check Vercel's current limits if that happens.
+  The real fix at that scale is a queue/background job instead of one
+  long request, which is out of scope for this slice.
+
 ## What's stubbed / not built yet
 
-- ~~The "roll" session UI (start/active/closed states, grace period)~~ built now, see above
-- Camera-roll / upload ingestion tied to a session's time window (web can only ask the person to pick files, not read their camera roll automatically -- see below)
 - AI photo editing (crop/exposure/contrast correction)
-- Supabase storage/auth, the "developing..." async job, sharing/download UX
-- Real EXIF timestamp extraction (the pipeline expects a `timestamp` per
-  photo today; wiring that up to actual file metadata is separate work)
+- Any clear UI feedback when a background photo upload fails
+- A real async "developing" job with genuine progress (today it's one
+  synchronous request with a fake staged timer on top, per the timeout
+  note above)
+- Real EXIF timestamp extraction (photos are timestamped by the
+  browser's `file.lastModified`, which is "when this file was saved to
+  disk," not necessarily "when the photo was taken" -- close enough for
+  now, not the same thing)
+- User accounts / auth (RLS is wide open, as noted above)
 - Native camera-roll access: a website can never automatically pull
   photos from a phone's camera roll by time window -- that needs a
   native iOS/Android app. The web version always needs the person to
