@@ -6,11 +6,15 @@
   "main": "src/index.js",
   "scripts": {
     "demo": "node demo/generate.js",
-    "demo:ai": "node demo/runAIPipeline.js"
+    "demo:ai": "node demo/runAIPipeline.js",
+    "build:web": "esbuild src/browser/entry.js --bundle --minify --format=iife --global-name=ZineEngine --platform=browser --outfile=web/zine-engine.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "jimp": "^1.6.1",
     "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

@@ -18,6 +18,38 @@ clustering, real editorial logic) but without an `ANTHROPIC_API_KEY` it
 uses free image stats plus a deterministic heuristic instead of an actual
 vision model call -- see "The AI pipeline" below.
 
+## Beta V1: the browser-only flow (what is live now)
+
+The app now makes the zine entirely **in the person's browser** -- no
+server, no database, no API key, no function time limit:
+
+1. Start a roll. Add photos. Each photo is shrunk to 1600px in the
+   browser on the way in (fast, small, and it fixes odd formats) and
+   kept on the device in IndexedDB, so a refresh doesn't lose them.
+2. When the roll closes (plus up to 5 late photos), **Pick your 8** --
+   tap in the order you want; page 1 is the cover. "Just pick 8 for me"
+   spreads 8 evenly across the night (no AI). Fewer than 8 picked? They
+   repeat to fill all 8 pages.
+3. The "developing" animation always plays all five stages, then the
+   PDF downloads: one sheet in the 8-panel single-cut fold (same fold
+   as Dirty Little Zine), with a dashed cut guide. A4 or US Letter.
+
+`src/browser/entry.js` is bundled by esbuild into `web/zine-engine.js`
+(`npm run build:web`) from the same `src/render` + `src/layout` code the
+Node demos use -- **re-run it whenever anything under `src/` changes**,
+or the live site keeps the old engine.
+
+Parked, not deleted: the Supabase tables and `api/develop.js` (the AI
+selection + 3 style variants flow) still exist but the page doesn't call
+them. Note Supabase's free tier pauses a project after a stretch of
+inactivity, which is what broke the earlier connected version.
+
+Photos on panels that print upside down are rotated with the panel
+(fixed in `PanelContext._drawImage`; before this, only text rotated).
+Photos whose shape doesn't match the panel are shown whole instead of
+cropped (`fit: "auto"`). Photo capture times are NOT checked against the
+roll window yet.
+
 ## Run it
 
 ```bash

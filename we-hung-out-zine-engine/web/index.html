@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Caveat:wght@600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   --flash-blue:#2b3bff; --flash-yellow:#ffd93b; --print-white:#fbfaf6;
@@ -64,64 +63,81 @@ input[type=text],input[type=time]{width:100%;font:inherit;font-weight:800;font-s
 .note{font-family:var(--hand);font-size:24px;color:var(--flash-yellow);margin-top:14px;line-height:1.05}
 .tiny{font-size:14px;opacity:.75;margin-top:18px}
 input[type=file]{display:none}
-.vibe{display:block;width:100%;text-align:left;font:inherit;font-weight:800;font-size:22px;letter-spacing:-.01em;
-  color:var(--ink);background:var(--print-white);border:0;border-radius:16px;padding:18px 20px;margin-top:14px;
-  box-shadow:0 5px 0 var(--ink);cursor:pointer;transition:transform .08s,box-shadow .08s}
-.vibe:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
-.vibe span{display:block;font-family:var(--hand);font-weight:600;font-size:17px;color:var(--flash-blue);margin-top:2px}
-.zinecard{background:var(--print-white);color:var(--ink);border-radius:20px;padding:20px;margin-top:18px;box-shadow:0 6px 0 var(--ink)}
-.zinecard:nth-child(odd){transform:rotate(-.6deg)}.zinecard:nth-child(even){transform:rotate(.6deg)}
-.zinecard h3{margin:0;font-weight:800;font-size:24px;letter-spacing:-.02em}
-.zinecard .links{display:flex;gap:10px;margin-top:14px}
-.zinecard a{flex:1;text-align:center;text-decoration:none;font-weight:800;font-size:15px;border-radius:999px;padding:12px 10px}
-.zinecard a.pri{background:var(--flash-yellow);color:var(--ink)}
-.zinecard a.sec{background:var(--flash-blue);color:var(--print-white)}
 @media (prefers-reduced-motion:reduce){.frame.now{animation:none}.btn{transition:none}}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.cell{position:relative;aspect-ratio:3/4;border:0;padding:0;border-radius:6px;overflow:hidden;cursor:pointer;background:var(--ink);box-shadow:0 4px 0 var(--ink)}
+.cell img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .15s}
+.cell.dim img{opacity:.35}
+.cell .badge{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;background:var(--flash-yellow);color:var(--ink);font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--ink)}
+.cell.on{outline:4px solid var(--flash-yellow);outline-offset:-4px}
+.seg{display:flex;gap:8px;margin-top:10px}
+.seg button{flex:1;font:inherit;font-weight:800;font-size:16px;border:0;border-radius:999px;padding:10px;cursor:pointer;background:transparent;color:var(--print-white);box-shadow:inset 0 0 0 2px var(--print-white)}
+.seg button.sel{background:var(--print-white);color:var(--ink)}
+.bar{position:sticky;bottom:0;padding:14px 0 6px;margin-top:18px;background:linear-gradient(to top,var(--flash-blue) 70%,transparent)}
+details{margin-top:18px}summary{cursor:pointer;font-family:var(--hand);font-size:26px;color:var(--flash-yellow)}
+ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
+.err{color:#ffb4b4;font-size:15px;margin-top:14px}
 </style>
+<script src="zine-engine.js"></script>
 </head>
+<body>
 <body>
 <main id="app" aria-live="polite"></main>
 <script>
 (function(){
   var app=document.getElementById('app');
-  var MAX_GRACE=5;
+  var MAX_GRACE=5, MAX_PX=1600;
   var STAGES=["Finding your photos...","Removing duplicates...","Finding the best moments...","Building your story...","Composing your zine..."];
-  // Public by design -- Supabase's anon key is meant to ship in client code;
-  // the RLS policies on the project are what actually guard the data.
-  // Guarded: if the CDN script didn't load (offline, blocked, flaky
-  // network), the app should still render the roll screens locally
-  // rather than crash outright -- uploads/develop just won't work.
-  var sb=null;
-  try{
-    if(window.supabase){
-      sb=window.supabase.createClient(
-        'https://orrxslxansacwqfuxqco.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ycnhzbHhhbnNhY3dxZnV4cWNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5MzU2NTMsImV4cCI6MjEwNjUxMTY1M30.dGnBt44uWt4YpK6DEhj29vfW4hvRF8hsxag22oXgLfU'
-      );
-    }
-  }catch(e){console.error('Supabase failed to initialize',e);}
-  var S={phase:'home',name:'Tonight',start:0,end:0,photos:[],savedCount:0,grace:0,stage:0,seen:{},rollId:null,devError:null,zine:null};
+  var STAGE_MS=2200;
+  var S={phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:'A4',busy:0,err:null,stage:0,out:null,seen:{}};
 
-  function load(){try{var r=JSON.parse(localStorage.getItem('whoRoll')||'null');
-    if(r&&r.start&&r.end&&(r.phase==='roll'||r.phase==='developing'||r.phase==='ready')){
-      S.phase=r.phase==='developing'?'roll':r.phase;S.name=r.name;S.start=r.start;S.end=r.end;S.savedCount=r.count||0;S.grace=r.grace||0;S.rollId=r.rollId||null;}}catch(e){}}
-  function save(){try{localStorage.setItem('whoRoll',JSON.stringify({phase:S.phase,name:S.name,start:S.start,end:S.end,count:count(),grace:S.grace,rollId:S.rollId}));}catch(e){}}
-  function clear(){try{localStorage.removeItem('whoRoll');}catch(e){}}
-  function count(){return Math.max(S.photos.length,S.savedCount);}
-  function fmt(ms){var d=new Date(ms),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+(m<10?'0':'')+m+' '+ap;}
-  function left(ms){var s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),c=s%60;
-    return h>0?h+'h '+m+'m':m>0?m+'m '+(c<10?'0':'')+c+'s':c+'s';}
+  /* ---------- tiny storage helpers (photos live on this device only) ---------- */
+  function meta(){try{return JSON.parse(localStorage.getItem('whoRoll2')||'null');}catch(e){return null;}}
+  function save(){try{localStorage.setItem('whoRoll2',JSON.stringify({phase:S.phase==='developing'||S.phase==='ready'?'pick':S.phase,name:S.name,start:S.start,end:S.end,grace:S.grace,sel:S.sel,paper:S.paper}));}catch(e){}}
+  function wipe(){try{localStorage.removeItem('whoRoll2');}catch(e){} idbClear();}
+  var dbp=null;
+  function db(){
+    if(dbp)return dbp;
+    dbp=new Promise(function(res,rej){
+      try{var r=indexedDB.open('whoRoll2',1);
+        r.onupgradeneeded=function(){r.result.createObjectStore('photos',{keyPath:'id'});};
+        r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};
+      }catch(e){rej(e);}
+    });
+    return dbp;
+  }
+  function idbPut(rec){return db().then(function(d){return new Promise(function(res,rej){var t=d.transaction('photos','readwrite');t.objectStore('photos').put(rec);t.oncomplete=res;t.onerror=function(){rej(t.error);};});}).catch(function(){});}
+  function idbAll(){return db().then(function(d){return new Promise(function(res,rej){var q=d.transaction('photos').objectStore('photos').getAll();q.onsuccess=function(){res(q.result||[]);};q.onerror=function(){rej(q.error);};});}).catch(function(){return [];});}
+  function idbClear(){return db().then(function(d){return new Promise(function(res){var t=d.transaction('photos','readwrite');t.objectStore('photos').clear();t.oncomplete=res;t.onerror=res;});}).catch(function(){});}
+
+  /* ---------- helpers ---------- */
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function two(n){return(n<10?'0':'')+n;}
+  function fmt(ms){var d=new Date(ms),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+two(m)+' '+ap;}
   function hhmm(ms){var d=new Date(ms);return two(d.getHours())+':'+two(d.getMinutes());}
+  function left(ms){var s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),c=s%60;return h>0?h+'h '+m+'m':m>0?m+'m '+two(c)+'s':c+'s';}
   function state(){var n=Date.now();return n>=S.end?'closed':n<S.start?'waiting':'active';}
+  function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+  function byId(id){return S.photos.filter(function(p){return p.id===id;})[0];}
 
+  /* ---------- shrink a photo in the browser (fast, small, fixes odd formats) ---------- */
+  function loadImg(file){return new Promise(function(res,rej){var u=URL.createObjectURL(file),i=new Image();i.onload=function(){URL.revokeObjectURL(u);res(i);};i.onerror=function(){URL.revokeObjectURL(u);rej(new Error('unreadable'));};i.src=u;});}
+  function shrink(file){
+    var get=window.createImageBitmap?createImageBitmap(file,{imageOrientation:'from-image'}).catch(function(){return loadImg(file);}):loadImg(file);
+    return get.then(function(src){
+      var w=src.width,h=src.height,sc=Math.min(1,MAX_PX/Math.max(w,h)),cw=Math.round(w*sc),ch=Math.round(h*sc);
+      var c=document.createElement('canvas');c.width=cw;c.height=ch;
+      var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cw,ch);x.drawImage(src,0,0,cw,ch);
+      if(src.close)src.close();
+      return new Promise(function(res,rej){c.toBlob(function(b){b?res(b):rej(new Error('encode'));},'image/jpeg',0.86);});
+    });
+  }
+
+  /* ---------- screens ---------- */
   function home(){
-    app.innerHTML='<div class="brand">we hung out</div>'+
-    '<h1 class="big">Turn your night into a zine.</h1>'+
+    app.innerHTML='<div class="brand">we hung out</div><h1 class="big">Turn your night into a zine.</h1>'+
     '<p>Start a roll. Take photos like normal. When it ends, we develop your night into something you can hold.</p>'+
-    '<div class="spacer"></div>'+
-    '<button class="btn shutter" id="go">START A ROLL</button>'+
-    '<div class="spacer"></div>';
+    '<div class="spacer"></div><button class="btn shutter" id="go">START A ROLL</button><div class="spacer"></div>';
     document.getElementById('go').onclick=function(){S.phase='setup';render();};
   }
 
@@ -132,25 +148,14 @@ input[type=file]{display:none}
     '<label for="nm">Give it a name</label><input type="text" id="nm" maxlength="28" value="Tonight">'+
     '<div class="row"><div><label for="st">Starts</label><input type="time" id="st" value="'+hhmm(st)+'"></div>'+
     '<div><label for="en">Ends</label><input type="time" id="en" value="'+hhmm(en)+'"></div></div>'+
-    '<p class="tiny">Only photos from this window make it into your zine.</p>'+
-    '<div class="spacer"></div>'+
-    '<button class="btn" id="start">Start roll</button>'+
-    '<button class="link" id="back">Back</button>';
+    '<p class="tiny">Your roll stays open between these two times.</p><div class="spacer"></div>'+
+    '<button class="btn" id="start">Start roll</button><button class="link" id="back">Back</button>';
     document.getElementById('back').onclick=function(){S.phase='home';render();};
     document.getElementById('start').onclick=function(){
       var t=function(id){var v=document.getElementById(id).value.split(':');var d=new Date();d.setHours(+v[0],+v[1],0,0);return d.getTime();};
       var a=t('st'),b=t('en');if(b<=a)b+=86400000;
       S.name=(document.getElementById('nm').value||'Tonight').trim();S.start=a;S.end=b;
-      S.photos=[];S.seen={};S.savedCount=0;S.grace=0;S.phase='roll';S.rollId=null;save();render();
-      if(sb){
-        sb.from('rolls').insert({
-          name:S.name,start_at:new Date(a).toISOString(),end_at:new Date(b).toISOString(),style:'DOCUMENTARY',status:'active'
-        }).select().single().then(function(r){
-          if(r.error){console.error(r.error);return;}
-          S.rollId=r.data.id;save();
-        });
-      }
-    };
+      S.photos=[];S.seen={};S.grace=0;S.sel=[];S.err=null;idbClear();S.phase='roll';save();render();};
   }
 
   function roll(){
@@ -158,158 +163,169 @@ input[type=file]{display:none}
     var head=st==='waiting'?'Roll starts soon':closed?'Roll closed':'Roll active';
     var sub=st==='waiting'?'Starts at '+fmt(S.start):closed?'Ended at '+fmt(S.end):fmt(S.start)+' to '+fmt(S.end);
     var html='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">'+head+'</h2><p style="margin-top:8px">'+sub+'</p>'+
-      '<div class="counter"><small>Photos captured</small><div class="num" id="cnt">'+count()+'</div>'+
+      '<div class="counter"><small>Photos captured</small><div class="num">'+S.photos.length+'</div>'+
       (closed?'<div class="time" id="tl">'+(MAX_GRACE-S.grace)+' late photo'+((MAX_GRACE-S.grace)===1?'':'s')+' left</div>'
-        :'<div class="time" id="tl">'+left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining')+'</div>')+'</div>';
-    html+='<div class="strip" id="strip"></div>';
-    if(closed)html+='<p class="note">Your roll is closed. Add up to '+MAX_GRACE+' final photos, like that last group shot, before we develop it.</p>';
-    if(closed&&S.devError)html+='<p class="tiny" style="color:#ffb4b4">Last attempt failed: '+esc(S.devError)+'</p>';
-    html+='<div class="spacer"></div>';
-    var canAdd=st==='active'||(closed&&S.grace<MAX_GRACE);
-    html+='<input type="file" id="file" accept="image/*" multiple>'+
-      '<button class="btn alt" id="add"'+(canAdd?'':' disabled')+'>'+(closed?'Add final photos':'Add photos')+'</button>';
-    if(closed)html+='<div style="height:12px"></div><button class="btn" id="dev">Develop my roll</button>';
-    else html+='<button class="link" id="skip">Test only: end this roll now</button>';
+        :'<div class="time" id="tl">'+left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining')+'</div>')+'</div>'+
+      '<div class="strip" id="strip"></div>';
+    if(closed)html+='<p class="note">Your roll is closed. Add up to '+MAX_GRACE+' final photos, like that last group shot, then pick your favorites.</p>';
+    if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
+    html+='<div class="spacer"></div><input type="file" id="file" accept="image/*" multiple>';
+    var canAdd=!S.busy&&(st==='active'||(closed&&S.grace<MAX_GRACE));
+    html+='<button class="btn alt" id="add"'+(canAdd?'':' disabled')+'>'+(S.busy?'Adding... '+S.busy+' left':closed?'Add final photos':'Add photos')+'</button>';
+    if(closed)html+='<div style="height:12px"></div><button class="btn" id="dev"'+(S.photos.length&&!S.busy?'':' disabled')+'>Pick your 8</button>';
+    else html+='<button class="link" id="skip">Testing: end this roll now</button>';
     app.innerHTML=html;drawStrip();
     var file=document.getElementById('file');
     document.getElementById('add').onclick=function(){file.click();};
     file.onchange=function(){addFiles(file.files,closed);file.value='';};
-    if(closed)document.getElementById('dev').onclick=function(){S.phase='vibe';render();};
+    if(closed)document.getElementById('dev').onclick=function(){S.phase='pick';S.err=null;save();render();};
     else document.getElementById('skip').onclick=function(){S.end=Date.now();save();render();};
-  }
-
-  function addFiles(list,closed){
-    var arr=Array.prototype.slice.call(list);
-    var toUpload=[];
-    for(var i=0;i<arr.length;i++){
-      var f=arr[i],k=f.name+'|'+f.size+'|'+f.lastModified;
-      if(S.seen[k])continue;
-      if(closed&&S.grace>=MAX_GRACE)break;
-      S.seen[k]=1;if(closed)S.grace++;
-      S.photos.push({k:k,url:URL.createObjectURL(f)});
-      toUpload.push({f:f,takenAt:f.lastModified?new Date(f.lastModified):new Date()});
-    }
-    save();render();
-    toUpload.forEach(function(item){uploadPhoto(item.f,item.takenAt,closed);});
-  }
-
-  // Uploads happen in the background -- the photo strip already shows the
-  // local preview instantly, so a slow or dropped upload doesn't block the
-  // UI. If it fails, the photo simply won't be in the roll when "Develop"
-  // runs; worth surfacing more clearly once this moves past a prototype.
-  function waitForRollId(tries){
-    tries=tries||0;
-    return new Promise(function(resolve,reject){
-      (function check(){
-        if(S.rollId)return resolve(S.rollId);
-        if(tries++>40)return reject(new Error('no roll id'));
-        setTimeout(check,150);
-      })();
-    });
-  }
-  function uploadPhoto(file,takenAt,isGrace){
-    if(!sb)return;
-    waitForRollId().then(function(rollId){
-      var path=rollId+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'-'+file.name;
-      return sb.storage.from('photos').upload(path,file).then(function(up){
-        if(up.error)throw up.error;
-        return sb.from('roll_photos').insert({roll_id:rollId,storage_path:path,taken_at:takenAt.toISOString(),is_grace:!!isGrace});
-      });
-    }).catch(function(e){console.error('photo upload failed',e);});
   }
   function drawStrip(){
     var el=document.getElementById('strip');if(!el)return;
-    if(!S.photos.length){el.innerHTML='<div class="empty">'+(count()?'Your photos are safe. Add more any time.':'No photos yet. Add some from tonight.')+'</div>';return;}
+    if(!S.photos.length){el.innerHTML='<div class="empty">No photos yet. Add some from tonight.</div>';return;}
     el.innerHTML=S.photos.slice(-12).map(function(p){return '<div class="polaroid"><img alt="" src="'+p.url+'"></div>';}).join('');
     el.scrollLeft=el.scrollWidth;
   }
 
-  var VIBES=[
-    {key:'clean',label:'Clean & chronological',sub:'documentary, in order'},
-    {key:'cinematic',label:'Big & cinematic',sub:'dramatic, full-bleed'},
-    {key:'chaotic',label:'Messy & energetic',sub:'asymmetric, loud'},
-    {key:'scrapbook',label:'Personal & scrapbook-y',sub:'collage, handwritten'}
-  ];
-  var STYLE_LABEL={DOCUMENTARY:'Documentary',CINEMATIC:'Cinematic',CHAOTIC:'Chaotic',SCRAPBOOK:'Scrapbook'};
-  function vibe(){
-    var html='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">What\u2019s the vibe?</h2>'+
-    '<p>We\u2019ll build 3 versions of your zine so you can pick the one that feels right.</p>';
-    VIBES.forEach(function(v){html+='<button class="vibe" data-k="'+v.key+'">'+v.label+'<span>'+v.sub+'</span></button>';});
-    html+='<div class="spacer"></div><button class="link" id="back">Back</button>';
-    app.innerHTML=html;
-    Array.prototype.forEach.call(document.querySelectorAll('.vibe'),function(btn){
-      btn.onclick=function(){startDevelop(btn.getAttribute('data-k'));};
+  function addFiles(list,closed){
+    var arr=Array.prototype.slice.call(list),todo=[];
+    arr.forEach(function(f){
+      var k=f.name+'|'+f.size+'|'+f.lastModified;
+      if(S.seen[k])return;
+      if(closed&&S.grace+todo.length>=MAX_GRACE)return;
+      S.seen[k]=1;todo.push({f:f,k:k});
     });
-    document.getElementById('back').onclick=function(){S.phase='roll';render();};
+    if(!todo.length)return;
+    S.busy=todo.length;S.err=null;render();
+    var failed=0;
+    todo.reduce(function(chain,item){
+      return chain.then(function(){
+        return shrink(item.f).then(function(blob){
+          var rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),blob:blob,takenAt:item.f.lastModified||Date.now(),late:!!closed};
+          return idbPut(rec).then(function(){
+            S.photos.push({id:rec.id,url:URL.createObjectURL(blob),blob:blob,takenAt:rec.takenAt,late:rec.late});
+            if(closed)S.grace++;
+          });
+        }).catch(function(){failed++;});
+      }).then(function(){S.busy--;save();if(S.phase==='roll')render();});
+    },Promise.resolve()).then(function(){
+      S.busy=0;
+      if(failed)S.err=failed+' photo'+(failed>1?'s':'')+' couldn\u2019t be read (try a JPEG or PNG).';
+      if(S.phase==='roll')render();
+    });
   }
 
-  // The real pipeline doesn't report incremental progress back to the
-  // browser (one request, one response) -- this just cycles the same
-  // staged copy from the product spec while that request is in flight,
-  // so the wait still feels like something is happening rather than a
-  // frozen screen. It is not reporting real per-photo progress.
-  var devTimer=null;
+  function pick(){
+    var n=S.sel.length;
+    var html='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">Pick your 8</h2>'+
+      '<p>Tap photos in the order you want them. Page 1 is your cover.</p><div class="grid">';
+    S.photos.forEach(function(p){
+      var i=S.sel.indexOf(p.id),on=i>-1,dim=!on&&n>=8;
+      html+='<button class="cell'+(on?' on':'')+(dim?' dim':'')+'" data-id="'+p.id+'" aria-label="photo">'+
+        '<img alt="" src="'+p.url+'">'+(on?'<span class="badge">'+(i+1)+'</span>':'')+'</button>';
+    });
+    html+='</div>';
+    if(S.photos.length>8)html+='<button class="link" id="auto">Just pick 8 for me</button>';
+    html+='<label>Paper</label><div class="seg"><button data-p="A4" class="'+(S.paper==='A4'?'sel':'')+'">A4</button><button data-p="LETTER" class="'+(S.paper==='LETTER'?'sel':'')+'">US Letter</button></div>';
+    if(n>0&&n<8)html+='<p class="tiny">With '+n+' photo'+(n>1?'s':'')+' picked, we\u2019ll repeat them to fill all 8 pages.</p>';
+    if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
+    html+='<div class="bar"><button class="btn" id="make" style="width:100%"'+(n?'':' disabled')+'>Develop my zine ('+n+'/8)</button>'+
+      '<div style="text-align:center"><button class="link" id="back">Back to my roll</button></div></div>';
+    app.innerHTML=html;
+    Array.prototype.forEach.call(document.querySelectorAll('.cell'),function(c){
+      c.onclick=function(){
+        var id=c.getAttribute('data-id'),i=S.sel.indexOf(id);
+        if(i>-1)S.sel.splice(i,1);else if(S.sel.length<8)S.sel.push(id);
+        save();var y=window.scrollY;pick();window.scrollTo(0,y);
+      };
+    });
+    var au=document.getElementById('auto');
+    if(au)au.onclick=function(){
+      var sorted=S.photos.slice().sort(function(a,b){return a.takenAt-b.takenAt;}),out=[];
+      for(var k=0;k<8;k++)out.push(sorted[Math.round(k*(sorted.length-1)/7)].id);
+      S.sel=out;save();pick();
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){S.paper=b.getAttribute('data-p');save();var y=window.scrollY;pick();window.scrollTo(0,y);};});
+    document.getElementById('back').onclick=function(){S.phase='roll';render();};
+    document.getElementById('make').onclick=develop;
+  }
+
+  /* ---------- the "developing" wait (always plays all five stages) ---------- */
+  var timer=null;
   function developing(){
     var frames='';for(var i=0;i<STAGES.length;i++)frames+='<div class="frame'+(i<S.stage?' done':i===S.stage?' now':'')+'"></div>';
     app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">Developing your night</h2>'+
       '<div class="film">'+frames+'</div><p class="note" style="font-size:30px">'+STAGES[S.stage]+'</p>'+
-      '<p class="tiny">This can take a little while, especially the first time. Don\'t close this tab.</p>';
+      '<p class="tiny">Hang tight. Keep this tab open.</p>';
   }
-  function startDevelop(vibeKey){
-    if(!sb||!S.rollId){S.devError='Not connected -- check your connection and try again.';S.phase='roll';render();return;}
-    S.phase='developing';S.stage=0;S.devError=null;save();render();
-    devTimer=setInterval(function(){S.stage=(S.stage+1)%STAGES.length;developing();},2200);
-    fetch('/api/develop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rollId:S.rollId,vibe:vibeKey})})
-      .then(function(r){return r.json().then(function(body){return {ok:r.ok,body:body};});})
-      .then(function(res){
-        clearInterval(devTimer);
-        if(!res.ok)throw new Error(res.body&&res.body.error?res.body.error:'Something went wrong');
-        S.zine=res.body;S.phase='ready';save();render();
-      })
-      .catch(function(e){
-        clearInterval(devTimer);
-        S.devError=e.message||'Something went wrong';S.phase='roll';save();render();
-      });
+  function develop(){
+    var chosen=S.sel.map(byId).filter(Boolean);
+    if(!chosen.length)return;
+    S.phase='developing';S.stage=0;S.err=null;render();
+    timer=setInterval(function(){if(S.stage<STAGES.length-1){S.stage++;developing();}},STAGE_MS);
+    var build=Promise.all(chosen.map(function(p){return p.blob.arrayBuffer();})).then(function(bufs){
+      return ZineEngine.buildZine({photos:bufs.map(function(b){return new Uint8Array(b);}),title:S.name,paperSize:S.paper});
+    });
+    // The wait is part of the product: never skip the animation, even when the PDF is ready sooner.
+    Promise.all([build,wait(STAGE_MS*STAGES.length)]).then(function(r){
+      clearInterval(timer);
+      var res=r[0];
+      if(S.out){URL.revokeObjectURL(S.out.print);URL.revokeObjectURL(S.out.preview);}
+      S.out={print:URL.createObjectURL(new Blob([res.printBytes],{type:'application/pdf'})),preview:URL.createObjectURL(new Blob([res.previewBytes],{type:'application/pdf'}))};
+      S.phase='ready';render();
+    }).catch(function(e){
+      clearInterval(timer);console.error(e);
+      S.err='Something went wrong making the PDF: '+(e&&e.message?e.message:e);S.phase='pick';render();
+    });
   }
 
   function ready(){
-    var z=S.zine;
-    var html='<div class="brand">'+esc(S.name)+'</div><h1 class="big">3 cuts of your night.</h1>';
-    if(z&&z.zines&&z.zines.length){
-      html+='<p>Same photos, three different takes. Pick the one that feels like your night.</p>'+
-      (z.usedRealAI?'':'<p class="tiny">This selection used the offline fallback, not real AI analysis \u2014 add an ANTHROPIC_API_KEY to the server to change that.</p>');
-      z.zines.forEach(function(v){
-        html+='<div class="zinecard"><h3>'+esc(STYLE_LABEL[v.style]||v.style)+'</h3>'+
-        '<div class="links">'+
-        '<a class="pri" href="'+v.printUrl+'" target="_blank" rel="noopener">Print sheet</a>'+
-        '<a class="sec" href="'+v.previewUrl+'" target="_blank" rel="noopener">Preview</a>'+
-        '</div></div>';
-      });
-    } else {
-      html+='<p>Something went wrong putting this together.</p>';
-    }
-    html+='<div class="spacer"></div><button class="link" id="again">Start another roll</button>';
-    app.innerHTML=html;
-    document.getElementById('again').onclick=function(){clear();S={phase:'home',name:'Tonight',start:0,end:0,photos:[],savedCount:0,grace:0,stage:0,seen:{},rollId:null,devError:null,zine:null};render();};
+    var fname='we-hung-out-'+S.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.pdf';
+    app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h1 class="big">Your zine is ready.</h1>'+
+      '<p>Print it single-sided on one sheet of '+(S.paper==='A4'?'A4':'US Letter')+', landscape, at 100% size (no "fit to page").</p>'+
+      '<div class="spacer"></div>'+
+      '<a class="btn" style="text-decoration:none;text-align:center;display:block" href="'+S.out.print+'" download="'+fname+'">Download print sheet (PDF)</a>'+
+      '<div style="height:12px"></div>'+
+      '<a class="btn alt" style="text-decoration:none;text-align:center;display:block" href="'+S.out.preview+'" target="_blank" rel="noopener">Preview the 8 pages</a>'+
+      '<details><summary>How to fold it</summary><ol>'+
+      '<li>Print, then fold the sheet in half the long way and open it again.</li>'+
+      '<li>Fold it in half the short way and open it again.</li>'+
+      '<li>Fold both short ends in to meet the center crease, then open it flat. You\u2019ll see 8 panels.</li>'+
+      '<li>Fold the short way again and cut along the center crease from the folded edge, one panel deep (the dashed line shows where).</li>'+
+      '<li>Open it, fold the long way, and push the two ends toward each other so the slit opens into a plus sign.</li>'+
+      '<li>Press it flat into a little booklet, cover on top.</li></ol></details>'+
+      '<div style="height:18px"></div><button class="link" id="swap">Swap some photos</button><br><button class="link" id="again">Start another roll</button>';
+    document.getElementById('swap').onclick=function(){S.phase='pick';render();};
+    document.getElementById('again').onclick=function(){wipe();S={phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:S.paper,busy:0,err:null,stage:0,out:null,seen:{}};render();};
   }
-
-  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 
   var lastState='';
   function render(){
-    if(S.phase==='home')home();else if(S.phase==='setup')setup();else if(S.phase==='roll'){lastState=state();roll();}
-    else if(S.phase==='vibe')vibe();else if(S.phase==='developing')developing();else ready();
+    if(S.phase==='home')home();else if(S.phase==='setup')setup();
+    else if(S.phase==='roll'){lastState=state();roll();}
+    else if(S.phase==='pick')pick();else if(S.phase==='developing')developing();else ready();
     window.scrollTo(0,0);
   }
   setInterval(function(){
-    if(S.phase==='roll'){
-      var st=state();if(st!==lastState){render();return;}
-      var tl=document.getElementById('tl');
-      if(tl&&st!=='closed')tl.textContent=left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining');
-    }
+    if(S.phase!=='roll')return;
+    var st=state();if(st!==lastState&&!S.busy){render();return;}
+    var tl=document.getElementById('tl');
+    if(tl&&st!=='closed')tl.textContent=left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining');
   },1000);
 
-  load();render();
+  /* ---------- start up: restore a roll in progress, photos included ---------- */
+  var m=meta();
+  if(m&&m.start&&m.end&&(m.phase==='roll'||m.phase==='pick')){
+    idbAll().then(function(recs){
+      recs.sort(function(a,b){return a.takenAt-b.takenAt;});
+      S.name=m.name;S.start=m.start;S.end=m.end;S.grace=m.grace||0;S.paper=m.paper||'A4';
+      S.photos=recs.map(function(r){return {id:r.id,url:URL.createObjectURL(r.blob),blob:r.blob,takenAt:r.takenAt,late:r.late};});
+      S.sel=(m.sel||[]).filter(function(id){return byId(id);});
+      S.phase=(m.phase==='pick'&&S.photos.length)?'pick':'roll';
+      render();
+    });
+  } else render();
 })();
 </script>
 </body>

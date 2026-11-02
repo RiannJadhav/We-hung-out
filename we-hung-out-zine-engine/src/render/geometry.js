@@ -127,6 +127,19 @@ export class PanelContext {
     });
   }
 
+  // Draws an image into a physical rect. On a panel that sits upside
+  // down on the printed sheet (the whole top row of the fold), the
+  // pixels must be rotated 180 degrees too -- not just the position --
+  // or the photo ends up upside down once the zine is folded. pdf-lib
+  // rotates about the draw anchor, so the anchor moves to the far corner.
+  _drawImage(image, r) {
+    if (this.rotationDeg === 180) {
+      this.page.drawImage(image, { x: r.x + r.w, y: r.y + r.h, width: r.w, height: r.h, rotate: degreesHelper()(180) });
+    } else {
+      this.page.drawImage(image, { x: r.x, y: r.y, width: r.w, height: r.h });
+    }
+  }
+
   // Draws an embedded pdf-lib image "cover-fit" into a local rect, cropping
   // (via clip) rather than distorting the aspect ratio.
   drawImageCover(image, lx, ly, w, h) {
@@ -140,8 +153,19 @@ export class PanelContext {
 
     this.beginClip(lx, ly, w, h);
     const r = this._transformRect(lx + offsetX, ly + offsetY, drawW, drawH);
-    this.page.drawImage(image, { x: r.x, y: r.y, width: r.w, height: r.h });
+    this._drawImage(image, r);
     this.endClip();
+  }
+
+  // Fits the WHOLE image inside a local rect (no cropping), centered.
+  // Used for photos whose shape doesn't match the slot -- e.g. a
+  // landscape shot in a tall zine panel -- so faces never get cut off.
+  drawImageContain(image, lx, ly, w, h) {
+    const scale = Math.min(w / image.width, h / image.height);
+    const drawW = image.width * scale;
+    const drawH = image.height * scale;
+    const r = this._transformRect(lx + (w - drawW) / 2, ly + (h - drawH) / 2, drawW, drawH);
+    this._drawImage(image, r);
   }
 
   // Draws a placeholder "photo" (colored rect + label) for demo/stub use,
@@ -163,7 +187,15 @@ export class PanelContext {
 
   drawPhoto(slot, lx, ly, w, h, fonts) {
     if (slot && slot.image) {
-      this.drawImageCover(slot.image, lx, ly, w, h);
+      // fit: "cover" (fill, crop), "contain" (whole photo), or "auto"
+      // (default): fill only when the photo's shape is close to the
+      // slot's, otherwise show the whole photo so nobody's face is cropped.
+      const fit = slot.fit || "auto";
+      const imgAspect = slot.image.width / slot.image.height;
+      const boxAspect = w / h;
+      const close = Math.abs(imgAspect - boxAspect) / boxAspect < 0.3;
+      if (fit === "cover" || (fit === "auto" && close)) this.drawImageCover(slot.image, lx, ly, w, h);
+      else this.drawImageContain(slot.image, lx, ly, w, h);
     } else {
       this.drawPlaceholderCover(slot || { color: rgbHelper()(0.85, 0.85, 0.85) }, lx, ly, w, h, fonts);
     }

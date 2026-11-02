@@ -18,7 +18,7 @@ async function embedFonts(pdfDoc) {
  * positioned and rotated per the fold-and-cut imposition in
  * zine/imposition.js. This is the file that actually goes to the printer.
  */
-export async function renderPrintPDF(zinePages, { paperSize = "A4", styleName = "DOCUMENTARY", pdfDoc } = {}) {
+export async function renderPrintPDF(zinePages, { paperSize = "A4", styleName = "DOCUMENTARY", pdfDoc, cutGuide = true } = {}) {
   pdfDoc = pdfDoc || (await PDFDocument.create());
   const fonts = await embedFonts(pdfDoc);
   const style = resolveStyle(styleName);
@@ -39,6 +39,21 @@ export async function renderPrintPDF(zinePages, { paperSize = "A4", styleName = 
       rotationDeg: panel.rotationDeg,
     });
     drawPage(ctx, pageSpec, fonts, embeddedStyle);
+  }
+
+  // A faint dashed guide for the one cut this fold needs: along the
+  // horizontal center crease, across the two middle panels only.
+  if (cutGuide) {
+    const { panelWidth } = getImpositionLayout(paperSize);
+    const y = sheet.height / 2;
+    page.drawLine({
+      start: { x: panelWidth, y },
+      end: { x: panelWidth * 3, y },
+      thickness: 0.6,
+      color: rgb(0.55, 0.55, 0.55),
+      dashArray: [4, 3],
+    });
+    page.drawText("cut here", { x: panelWidth + 3, y: y + 2, size: 5, font: fonts.helvetica, color: rgb(0.55, 0.55, 0.55) });
   }
 
   pdfDoc.setTitle("We hung out -- print sheet");
