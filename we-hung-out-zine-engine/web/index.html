@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="only light">
+<meta name="theme-color" content="#2b3bff">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>We hung out</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,6 +15,7 @@
   --ink:#14142b; --blush:#ff8fb1;
   --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
   --hand:"Caveat","Bradley Hand",cursive;
+  color-scheme:only light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -142,7 +145,7 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
   }
 
   function setup(){
-    var now=new Date(),st=new Date(now);st.setMinutes(Math.round(now.getMinutes()/15)*15,0,0);
+    var now=new Date(),st=new Date(now);st.setSeconds(0,0);
     var en=new Date(st.getTime()+4*3600000);
     app.innerHTML='<div class="brand">new roll</div><h2 class="mid">What is this?</h2>'+
     '<label for="nm">Give it a name</label><input type="text" id="nm" maxlength="28" value="Tonight">'+
@@ -172,14 +175,25 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
     html+='<div class="spacer"></div><input type="file" id="file" accept="image/*" multiple>';
     var canAdd=!S.busy&&(st==='active'||(closed&&S.grace<MAX_GRACE));
     html+='<button class="btn alt" id="add"'+(canAdd?'':' disabled')+'>'+(S.busy?'Adding... '+S.busy+' left':closed?'Add final photos':'Add photos')+'</button>';
-    if(closed)html+='<div style="height:12px"></div><button class="btn" id="dev"'+(S.photos.length&&!S.busy?'':' disabled')+'>Pick your 8</button>';
-    else html+='<button class="link" id="skip">Testing: end this roll now</button>';
+    if(closed){
+      html+='<div style="height:12px"></div><button class="btn" id="dev"'+(S.photos.length&&!S.busy?'':' disabled')+'>Pick your 8</button>';
+      if(S.busy)html+='<p class="tiny" style="text-align:center">Still adding your photos...</p>';
+      else if(!S.photos.length)html+='<p class="tiny" style="text-align:center">Add at least one photo first. Photos stay on the device you add them on.</p>';
+    } else {
+      if(st==='waiting')html+='<button class="link" id="startnow">Start the roll right now</button><br>';
+      html+='<button class="link" id="skip">Testing: end this roll now</button>';
+      html+='<p class="tiny" style="text-align:center">Your photos stay on this device. Use the same phone or computer from start to finish.</p>';
+    }
     app.innerHTML=html;drawStrip();
     var file=document.getElementById('file');
     document.getElementById('add').onclick=function(){file.click();};
     file.onchange=function(){addFiles(file.files,closed);file.value='';};
     if(closed)document.getElementById('dev').onclick=function(){S.phase='pick';S.err=null;save();render();};
-    else document.getElementById('skip').onclick=function(){S.end=Date.now();save();render();};
+    else {
+      document.getElementById('skip').onclick=function(){S.end=Date.now();save();render();};
+      var sn=document.getElementById('startnow');
+      if(sn)sn.onclick=function(){S.start=Date.now()-1000;save();render();};
+    }
   }
   function drawStrip(){
     var el=document.getElementById('strip');if(!el)return;
@@ -209,7 +223,7 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
           });
         }).catch(function(){failed++;});
       }).then(function(){S.busy--;save();if(S.phase==='roll')render();});
-    },Promise.resolve()).then(function(){
+    },Promise.resolve()).catch(function(){failed++;}).then(function(){
       S.busy=0;
       if(failed)S.err=failed+' photo'+(failed>1?'s':'')+' couldn\u2019t be read (try a JPEG or PNG).';
       if(S.phase==='roll')render();
