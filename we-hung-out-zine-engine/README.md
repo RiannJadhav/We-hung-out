@@ -191,28 +191,38 @@ framework) so it's easy to open directly or deploy as-is.
   strip updates instantly regardless of upload success, so a flaky
   upload doesn't block the UI, but also isn't surfaced clearly yet if
   it fails).
-- **`api/develop.js`** is a real Vercel serverless function. It fetches
-  a roll's photos from storage, runs the actual Stage 1-4 pipeline
-  (`src/ai/pipeline.js`), renders the actual zine (`src/render`), uploads
-  the print + preview PDFs to the `zines` bucket, and returns their
-  public URLs. The "Develop my roll" button calls this directly and
-  waits for the response -- the staged "Removing duplicates.../Building
-  your story..." copy just cycles on a timer while that request is in
-  flight, it isn't wired to real per-photo progress.
+- **`api/develop.js`** is a real Vercel serverless function, and now
+  generates **3 zine variants per roll**, not 1. The flow: after a roll
+  closes, the person picks a "vibe" (`web/index.html`'s new vibe-picker
+  screen, mapped to styles in `src/zine/vibes.js`); the function runs
+  Stage 1-3 (the expensive, per-photo analysis) **once**, then runs
+  Stage 4 (editorial selection -- cheap, one call over the ~20-photo
+  shortlist) **three times**, once per style, via the new
+  `runAnalysisStages`/`runEditorialSelection` split in
+  `src/ai/pipeline.js`. Each variant gets its own print + preview PDF,
+  uploaded to the `zines` bucket under `${rollId}/${style}/...`. The
+  "Develop my roll" button waits for all 3 before showing results --
+  the staged "Removing duplicates.../Building your story..." copy just
+  cycles on a timer while that request is in flight, it isn't wired to
+  real per-photo progress.
+- **`zines` table** now holds one row per `(roll_id, style)` instead of
+  one per roll (migration: `support_multiple_zine_styles`). `rolls`
+  also gained a `vibe` column recording what the person picked.
 - **No environment variables needed yet.** The Supabase URL + anon key
   are hardcoded in both `web/index.html` and `api/_lib/supabaseClient.js`
   (safe to do -- that's what the anon key is for). The only env var that
   matters is optional: set `ANTHROPIC_API_KEY` in Vercel's Environment
   Variables to get real vision analysis instead of the offline
   heuristic fallback.
-- **Timeout risk, flagged honestly**: `api/develop.js` runs the whole
-  pipeline synchronously in one request (`maxDuration: 60` is set in
-  the file). That's fine for a normal-sized roll. A roll with a lot of
-  photos, especially with a real `ANTHROPIC_API_KEY` doing one vision
-  call per photo, could run long enough to hit Vercel's function time
-  limit for your plan -- check Vercel's current limits if that happens.
-  The real fix at that scale is a queue/background job instead of one
-  long request, which is out of scope for this slice.
+- **Timeout risk, flagged honestly -- worse now than before**:
+  `api/develop.js` runs Stage 1-3 once but Stage 4 + rendering 3 times,
+  all synchronously in one request (`maxDuration: 60`). Fine for a
+  normal-sized roll; a roll with a lot of photos, especially with a
+  real `ANTHROPIC_API_KEY` doing one vision call per photo during
+  Stage 1, could run long enough to hit Vercel's function time limit
+  for your plan -- check Vercel's current limits if that happens. The
+  real fix at that scale is a queue/background job instead of one long
+  request, which is out of scope for this slice.
 
 ## What's stubbed / not built yet
 

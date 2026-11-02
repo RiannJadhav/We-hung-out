@@ -64,6 +64,18 @@ input[type=text],input[type=time]{width:100%;font:inherit;font-weight:800;font-s
 .note{font-family:var(--hand);font-size:24px;color:var(--flash-yellow);margin-top:14px;line-height:1.05}
 .tiny{font-size:14px;opacity:.75;margin-top:18px}
 input[type=file]{display:none}
+.vibe{display:block;width:100%;text-align:left;font:inherit;font-weight:800;font-size:22px;letter-spacing:-.01em;
+  color:var(--ink);background:var(--print-white);border:0;border-radius:16px;padding:18px 20px;margin-top:14px;
+  box-shadow:0 5px 0 var(--ink);cursor:pointer;transition:transform .08s,box-shadow .08s}
+.vibe:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.vibe span{display:block;font-family:var(--hand);font-weight:600;font-size:17px;color:var(--flash-blue);margin-top:2px}
+.zinecard{background:var(--print-white);color:var(--ink);border-radius:20px;padding:20px;margin-top:18px;box-shadow:0 6px 0 var(--ink)}
+.zinecard:nth-child(odd){transform:rotate(-.6deg)}.zinecard:nth-child(even){transform:rotate(.6deg)}
+.zinecard h3{margin:0;font-weight:800;font-size:24px;letter-spacing:-.02em}
+.zinecard .links{display:flex;gap:10px;margin-top:14px}
+.zinecard a{flex:1;text-align:center;text-decoration:none;font-weight:800;font-size:15px;border-radius:999px;padding:12px 10px}
+.zinecard a.pri{background:var(--flash-yellow);color:var(--ink)}
+.zinecard a.sec{background:var(--flash-blue);color:var(--print-white)}
 @media (prefers-reduced-motion:reduce){.frame.now{animation:none}.btn{transition:none}}
 </style>
 </head>
@@ -162,7 +174,7 @@ input[type=file]{display:none}
     var file=document.getElementById('file');
     document.getElementById('add').onclick=function(){file.click();};
     file.onchange=function(){addFiles(file.files,closed);file.value='';};
-    if(closed)document.getElementById('dev').onclick=function(){startDevelop();};
+    if(closed)document.getElementById('dev').onclick=function(){S.phase='vibe';render();};
     else document.getElementById('skip').onclick=function(){S.end=Date.now();save();render();};
   }
 
@@ -212,6 +224,25 @@ input[type=file]{display:none}
     el.scrollLeft=el.scrollWidth;
   }
 
+  var VIBES=[
+    {key:'clean',label:'Clean & chronological',sub:'documentary, in order'},
+    {key:'cinematic',label:'Big & cinematic',sub:'dramatic, full-bleed'},
+    {key:'chaotic',label:'Messy & energetic',sub:'asymmetric, loud'},
+    {key:'scrapbook',label:'Personal & scrapbook-y',sub:'collage, handwritten'}
+  ];
+  var STYLE_LABEL={DOCUMENTARY:'Documentary',CINEMATIC:'Cinematic',CHAOTIC:'Chaotic',SCRAPBOOK:'Scrapbook'};
+  function vibe(){
+    var html='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">What\u2019s the vibe?</h2>'+
+    '<p>We\u2019ll build 3 versions of your zine so you can pick the one that feels right.</p>';
+    VIBES.forEach(function(v){html+='<button class="vibe" data-k="'+v.key+'">'+v.label+'<span>'+v.sub+'</span></button>';});
+    html+='<div class="spacer"></div><button class="link" id="back">Back</button>';
+    app.innerHTML=html;
+    Array.prototype.forEach.call(document.querySelectorAll('.vibe'),function(btn){
+      btn.onclick=function(){startDevelop(btn.getAttribute('data-k'));};
+    });
+    document.getElementById('back').onclick=function(){S.phase='roll';render();};
+  }
+
   // The real pipeline doesn't report incremental progress back to the
   // browser (one request, one response) -- this just cycles the same
   // staged copy from the product spec while that request is in flight,
@@ -224,11 +255,11 @@ input[type=file]{display:none}
       '<div class="film">'+frames+'</div><p class="note" style="font-size:30px">'+STAGES[S.stage]+'</p>'+
       '<p class="tiny">This can take a little while, especially the first time. Don\'t close this tab.</p>';
   }
-  function startDevelop(){
-    if(!sb||!S.rollId){S.devError='Not connected -- check your connection and try again.';render();return;}
+  function startDevelop(vibeKey){
+    if(!sb||!S.rollId){S.devError='Not connected -- check your connection and try again.';S.phase='roll';render();return;}
     S.phase='developing';S.stage=0;S.devError=null;save();render();
     devTimer=setInterval(function(){S.stage=(S.stage+1)%STAGES.length;developing();},2200);
-    fetch('/api/develop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rollId:S.rollId})})
+    fetch('/api/develop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rollId:S.rollId,vibe:vibeKey})})
       .then(function(r){return r.json().then(function(body){return {ok:r.ok,body:body};});})
       .then(function(res){
         clearInterval(devTimer);
@@ -243,14 +274,17 @@ input[type=file]{display:none}
 
   function ready(){
     var z=S.zine;
-    var html='<div class="brand">'+esc(S.name)+'</div><h1 class="big">Your zine is ready.</h1>';
-    if(z&&z.printUrl){
-      html+='<p>Flip through it, or go straight to the print sheet \u2014 print single-sided, fold, done.</p>'+
-      (z.usedRealAI?'':'<p class="tiny">This selection used the offline fallback, not real AI analysis \u2014 add an ANTHROPIC_API_KEY to the server to change that.</p>')+
-      '<div class="spacer"></div>'+
-      '<a class="btn" style="text-decoration:none;text-align:center;display:block" href="'+z.printUrl+'" target="_blank" rel="noopener">Download print sheet (PDF)</a>'+
-      '<div style="height:12px"></div>'+
-      '<a class="btn alt" style="text-decoration:none;text-align:center;display:block" href="'+z.previewUrl+'" target="_blank" rel="noopener">View zine preview</a>';
+    var html='<div class="brand">'+esc(S.name)+'</div><h1 class="big">3 cuts of your night.</h1>';
+    if(z&&z.zines&&z.zines.length){
+      html+='<p>Same photos, three different takes. Pick the one that feels like your night.</p>'+
+      (z.usedRealAI?'':'<p class="tiny">This selection used the offline fallback, not real AI analysis \u2014 add an ANTHROPIC_API_KEY to the server to change that.</p>');
+      z.zines.forEach(function(v){
+        html+='<div class="zinecard"><h3>'+esc(STYLE_LABEL[v.style]||v.style)+'</h3>'+
+        '<div class="links">'+
+        '<a class="pri" href="'+v.printUrl+'" target="_blank" rel="noopener">Print sheet</a>'+
+        '<a class="sec" href="'+v.previewUrl+'" target="_blank" rel="noopener">Preview</a>'+
+        '</div></div>';
+      });
     } else {
       html+='<p>Something went wrong putting this together.</p>';
     }
@@ -264,7 +298,7 @@ input[type=file]{display:none}
   var lastState='';
   function render(){
     if(S.phase==='home')home();else if(S.phase==='setup')setup();else if(S.phase==='roll'){lastState=state();roll();}
-    else if(S.phase==='developing')developing();else ready();
+    else if(S.phase==='vibe')vibe();else if(S.phase==='developing')developing();else ready();
     window.scrollTo(0,0);
   }
   setInterval(function(){
@@ -274,9 +308,6 @@ input[type=file]{display:none}
       if(tl&&st!=='closed')tl.textContent=left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining');
     }
   },1000);
-  setInterval(function(){
-    if(S.phase==='developing'){S.stage++;if(S.stage>=STAGES.length){S.phase='ready';save();render();}else developing();}
-  },2200);
 
   load();render();
 })();
