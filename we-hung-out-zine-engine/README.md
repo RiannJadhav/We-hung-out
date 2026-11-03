@@ -47,8 +47,18 @@ inactivity, which is what broke the earlier connected version.
 Photos on panels that print upside down are rotated with the panel
 (fixed in `PanelContext._drawImage`; before this, only text rotated).
 Photos whose shape doesn't match the panel are shown whole instead of
-cropped (`fit: "auto"`). Photo capture times are NOT checked against the
-roll window yet.
+cropped (`fit: "auto"`).
+
+**Roll-window filter.** Each added photo's capture time is read from its
+EXIF `DateTimeOriginal` (falling back to the file's own date for PNG/HEIC
+or when EXIF is missing). A photo is kept if it was taken during the roll
+(2 min of slack), or in the 30 minutes after it ended -- those count as
+"final photos", max 5. Everything else is left out with a notice and an
+"Add them anyway (testing)" link for beta. Photos taken during the roll
+can be added any time before developing, even after it closes. The setup
+screen now has a date picker so a roll can be for any night. Unverified:
+how reliably phone browsers keep EXIF dates when a photo is picked; test
+with real photos on a real phone.
 
 ## Run it
 

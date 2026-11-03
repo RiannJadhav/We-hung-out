@@ -24,7 +24,7 @@ html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;min-height:100%;background:var(--flash-blue);color:var(--print-white);
   font-family:var(--display);font-weight:500;font-size:18px;line-height:1.35;
   -webkit-font-smoothing:antialiased}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;mix-blend-mode:multiply;
+body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
 #app{max-width:480px;margin:0 auto;min-height:100vh;padding:28px 22px 40px;display:flex;flex-direction:column}
 h1,h2{font-weight:800;letter-spacing:-.035em;line-height:.92;margin:0}
@@ -46,7 +46,7 @@ p{margin:14px 0 0;max-width:34ch}
 .shutter:active{transform:rotate(-6deg) translateY(6px);box-shadow:0 2px 0 var(--ink)}
 .link{background:none;border:0;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:4px;cursor:pointer;padding:8px 0;opacity:.85}
 label{display:block;margin-top:22px;font-family:var(--hand);font-size:26px;color:var(--flash-yellow);line-height:1}
-input[type=text],input[type=time]{width:100%;font:inherit;font-weight:800;font-size:30px;letter-spacing:-.02em;color:var(--ink);
+input[type=text],input[type=time],input[type=date]{width:100%;font:inherit;font-weight:800;font-size:30px;letter-spacing:-.02em;color:var(--ink);
   background:var(--print-white);border:0;border-radius:14px;padding:12px 16px;margin-top:6px;box-shadow:0 4px 0 var(--ink)}
 .row{display:flex;gap:14px}.row>div{flex:1;min-width:0}
 .counter{background:var(--print-white);color:var(--ink);border-radius:22px;padding:20px 22px 22px;margin-top:22px;box-shadow:0 6px 0 var(--ink);transform:rotate(1.2deg)}
@@ -79,6 +79,7 @@ input[type=file]{display:none}
 .bar{position:sticky;bottom:0;padding:14px 0 6px;margin-top:18px;background:linear-gradient(to top,var(--flash-blue) 70%,transparent)}
 details{margin-top:18px}summary{cursor:pointer;font-family:var(--hand);font-size:26px;color:var(--flash-yellow)}
 ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
+.notice{background:rgba(255,255,255,.14);border-radius:14px;padding:12px 16px;margin-top:14px;font-size:16px}.notice p{margin:0 0 4px}
 .err{color:#ffb4b4;font-size:15px;margin-top:14px}
 </style>
 <script src="zine-engine.js"></script>
@@ -92,7 +93,17 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
   var MAX_GRACE=5, MAX_PX=1600;
   var STAGES=["Finding your photos...","Removing duplicates...","Finding the best moments...","Building your story...","Composing your zine..."];
   var STAGE_MS=2200;
-  var S={phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:'A4',busy:0,err:null,stage:0,out:null,seen:{}};
+  var S={phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:'A4',busy:0,err:null,stage:0,out:null,seen:{},rejected:[]};
+
+  /* ---------- optional blue tuning (a phone's night/eye-comfort mode can tint blue purple) ---------- */
+  try{
+    var q=new URLSearchParams(location.search).get('blue');
+    if(q==='reset')localStorage.removeItem('whoBlue');
+    else if(q&&/^[0-9a-f]{6}$/i.test(q))localStorage.setItem('whoBlue',q);
+    var bv=localStorage.getItem('whoBlue');
+    if(bv){document.documentElement.style.setProperty('--flash-blue','#'+bv);
+      var tc=document.querySelector('meta[name=theme-color]');if(tc)tc.setAttribute('content','#'+bv);}
+  }catch(e){}
 
   /* ---------- tiny storage helpers (photos live on this device only) ---------- */
   function meta(){try{return JSON.parse(localStorage.getItem('whoRoll2')||'null');}catch(e){return null;}}
@@ -123,6 +134,45 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
   function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
   function byId(id){return S.photos.filter(function(p){return p.id===id;})[0];}
 
+  function fmtDate(ms){return new Date(ms).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});}
+  function ymd(d){return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate());}
+
+  /* ---------- when was this photo actually taken? EXIF first, file date as a fallback ---------- */
+  function readTaken(file){
+    var fallback=file.lastModified||Date.now();
+    if(!/jpe?g/i.test((file.type||'')+file.name))return Promise.resolve(fallback);
+    return file.slice(0,262144).arrayBuffer().then(function(buf){
+      var v=new DataView(buf);
+      if(v.getUint16(0)!==0xFFD8)return fallback;
+      var off=2;
+      while(off+4<v.byteLength){
+        if(v.getUint8(off)!==0xFF)break;
+        var mk=v.getUint8(off+1),len=v.getUint16(off+2);
+        if(mk===0xE1&&v.getUint32(off+4)===0x45786966){
+          var t=off+10,le=v.getUint16(t)===0x4949;
+          var u16=function(o){return v.getUint16(t+o,le);},u32=function(o){return v.getUint32(t+o,le);};
+          var find=function(ifd,tag){var n=u16(ifd);for(var i=0;i<n;i++){var e=ifd+2+i*12;if(u16(e)===tag)return e;}return -1;};
+          var str=function(e){var c=u32(e+4),o=c>4?u32(e+8):e+8,r='';for(var k=0;k<c-1;k++)r+=String.fromCharCode(v.getUint8(t+o+k));return r;};
+          var ifd0=u32(4),res=null,ex=find(ifd0,0x8769);
+          if(ex>-1){var d=find(u32(ex+8),0x9003);if(d>-1)res=str(d);}
+          if(!res){var d2=find(ifd0,0x0132);if(d2>-1)res=str(d2);}
+          var m=res&&/^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/.exec(res);
+          if(m){var ms=new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]).getTime();if(ms>0)return ms;}
+          return fallback;
+        }
+        off+=2+len;
+      }
+      return fallback;
+    }).catch(function(){return fallback;});
+  }
+  // 'in' = taken during the roll, 'late' = taken in the 30 minutes after it ended (the "final photos"), 'out' = neither
+  var SLACK=120000, LATE_MS=30*60000;
+  function classify(t){
+    if(t<S.start-SLACK||t>S.end+LATE_MS)return 'out';
+    return t>S.end+SLACK?'late':'in';
+  }
+  function windowText(){return fmtDate(S.start)+', '+fmt(S.start)+' to '+fmt(S.end);}
+
   /* ---------- shrink a photo in the browser (fast, small, fixes odd formats) ---------- */
   function loadImg(file){return new Promise(function(res,rej){var u=URL.createObjectURL(file),i=new Image();i.onload=function(){URL.revokeObjectURL(u);res(i);};i.onerror=function(){URL.revokeObjectURL(u);rej(new Error('unreadable'));};i.src=u;});}
   function shrink(file){
@@ -149,32 +199,43 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
     var en=new Date(st.getTime()+4*3600000);
     app.innerHTML='<div class="brand">new roll</div><h2 class="mid">What is this?</h2>'+
     '<label for="nm">Give it a name</label><input type="text" id="nm" maxlength="28" value="Tonight">'+
+    '<label for="dt">Which day?</label><input type="date" id="dt" value="'+ymd(now)+'">'+
     '<div class="row"><div><label for="st">Starts</label><input type="time" id="st" value="'+hhmm(st)+'"></div>'+
     '<div><label for="en">Ends</label><input type="time" id="en" value="'+hhmm(en)+'"></div></div>'+
-    '<p class="tiny">Your roll stays open between these two times.</p><div class="spacer"></div>'+
+    '<p class="tiny">Only photos taken between these two times are kept.</p><div class="spacer"></div>'+
     '<button class="btn" id="start">Start roll</button><button class="link" id="back">Back</button>';
     document.getElementById('back').onclick=function(){S.phase='home';render();};
     document.getElementById('start').onclick=function(){
-      var t=function(id){var v=document.getElementById(id).value.split(':');var d=new Date();d.setHours(+v[0],+v[1],0,0);return d.getTime();};
+      var dv=(document.getElementById('dt').value||ymd(new Date())).split('-');
+      var t=function(id){var v=document.getElementById(id).value.split(':');return new Date(+dv[0],+dv[1]-1,+dv[2],+v[0],+v[1],0,0).getTime();};
       var a=t('st'),b=t('en');if(b<=a)b+=86400000;
       S.name=(document.getElementById('nm').value||'Tonight').trim();S.start=a;S.end=b;
-      S.photos=[];S.seen={};S.grace=0;S.sel=[];S.err=null;idbClear();S.phase='roll';save();render();};
+      S.photos=[];S.seen={};S.grace=0;S.sel=[];S.err=null;S.rejected=[];idbClear();S.phase='roll';save();render();};
+  }
+
+  function noticeHtml(){
+    if(!S.rejected.length)return '';
+    var out=S.rejected.filter(function(r){return r.why==='out';}).length,cap=S.rejected.length-out,m=[];
+    if(out)m.push(out+(out>1?' photos were':' photo was')+' taken outside your roll ('+windowText()+'), so we left '+(out>1?'them':'it')+' out.');
+    if(cap)m.push(cap+(cap>1?' more were':' more was')+' taken after the roll ended, past the limit of '+MAX_GRACE+' final photos.');
+    return '<div class="notice"><p>'+m.join(' ')+'</p><button class="link" id="force">Add them anyway (testing)</button></div>';
   }
 
   function roll(){
     var st=state(),closed=st==='closed';
     var head=st==='waiting'?'Roll starts soon':closed?'Roll closed':'Roll active';
-    var sub=st==='waiting'?'Starts at '+fmt(S.start):closed?'Ended at '+fmt(S.end):fmt(S.start)+' to '+fmt(S.end);
+    var sub=windowText();
+    var left5=MAX_GRACE-S.grace;
     var html='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">'+head+'</h2><p style="margin-top:8px">'+sub+'</p>'+
       '<div class="counter"><small>Photos captured</small><div class="num">'+S.photos.length+'</div>'+
-      (closed?'<div class="time" id="tl">'+(MAX_GRACE-S.grace)+' late photo'+((MAX_GRACE-S.grace)===1?'':'s')+' left</div>'
+      (closed?'<div class="time" id="tl">'+left5+' final photo'+(left5===1?'':'s')+' left</div>'
         :'<div class="time" id="tl">'+left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining')+'</div>')+'</div>'+
-      '<div class="strip" id="strip"></div>';
-    if(closed)html+='<p class="note">Your roll is closed. Add up to '+MAX_GRACE+' final photos, like that last group shot, then pick your favorites.</p>';
+      '<div class="strip" id="strip"></div>'+noticeHtml();
+    if(closed)html+='<p class="note">Your roll is closed. You can still add photos taken during it, plus up to '+MAX_GRACE+' final ones from the 30 minutes after. Then pick your favorites.</p>';
     if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
     html+='<div class="spacer"></div><input type="file" id="file" accept="image/*" multiple>';
-    var canAdd=!S.busy&&(st==='active'||(closed&&S.grace<MAX_GRACE));
-    html+='<button class="btn alt" id="add"'+(canAdd?'':' disabled')+'>'+(S.busy?'Adding... '+S.busy+' left':closed?'Add final photos':'Add photos')+'</button>';
+    var canAdd=!S.busy&&(st==='active'||closed);
+    html+='<button class="btn alt" id="add"'+(canAdd?'':' disabled')+'>'+(S.busy?'Adding... '+S.busy+' left':'Add photos')+'</button>';
     if(closed){
       html+='<div style="height:12px"></div><button class="btn" id="dev"'+(S.photos.length&&!S.busy?'':' disabled')+'>Pick your 8</button>';
       if(S.busy)html+='<p class="tiny" style="text-align:center">Still adding your photos...</p>';
@@ -187,7 +248,9 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
     app.innerHTML=html;drawStrip();
     var file=document.getElementById('file');
     document.getElementById('add').onclick=function(){file.click();};
-    file.onchange=function(){addFiles(file.files,closed);file.value='';};
+    file.onchange=function(){addFiles(file.files,false);file.value='';};
+    var fo=document.getElementById('force');
+    if(fo)fo.onclick=function(){var files=S.rejected.map(function(r){return r.f;});S.rejected=[];addFiles(files,true);};
     if(closed)document.getElementById('dev').onclick=function(){S.phase='pick';S.err=null;save();render();};
     else {
       document.getElementById('skip').onclick=function(){S.end=Date.now();save();render();};
@@ -202,31 +265,42 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
     el.scrollLeft=el.scrollWidth;
   }
 
-  function addFiles(list,closed){
-    var arr=Array.prototype.slice.call(list),todo=[];
-    arr.forEach(function(f){
+  function addFiles(list,force){
+    var fresh=[];
+    Array.prototype.slice.call(list).forEach(function(f){
       var k=f.name+'|'+f.size+'|'+f.lastModified;
       if(S.seen[k])return;
-      if(closed&&S.grace+todo.length>=MAX_GRACE)return;
-      S.seen[k]=1;todo.push({f:f,k:k});
+      fresh.push({f:f,k:k});
     });
-    if(!todo.length)return;
-    S.busy=todo.length;S.err=null;render();
-    var failed=0;
-    todo.reduce(function(chain,item){
-      return chain.then(function(){
-        return shrink(item.f).then(function(blob){
-          var rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),blob:blob,takenAt:item.f.lastModified||Date.now(),late:!!closed};
-          return idbPut(rec).then(function(){
-            S.photos.push({id:rec.id,url:URL.createObjectURL(blob),blob:blob,takenAt:rec.takenAt,late:rec.late});
-            if(closed)S.grace++;
-          });
-        }).catch(function(){failed++;});
-      }).then(function(){S.busy--;save();if(S.phase==='roll')render();});
-    },Promise.resolve()).catch(function(){failed++;}).then(function(){
+    if(!fresh.length)return;
+    S.busy=fresh.length;S.err=null;S.rejected=[];render();
+    Promise.all(fresh.map(function(it){return readTaken(it.f).then(function(t){it.t=t;});})).then(function(){
+      fresh.sort(function(a,b){return a.t-b.t;});
+      var todo=[],room=MAX_GRACE-S.grace;
+      fresh.forEach(function(it){
+        var c=force?'in':classify(it.t);
+        if(c==='out'){it.why='out';S.rejected.push(it);}
+        else if(c==='late'){if(room>0){room--;it.late=true;S.seen[it.k]=1;todo.push(it);}else{it.why='cap';S.rejected.push(it);}}
+        else{S.seen[it.k]=1;todo.push(it);}
+      });
+      S.busy=todo.length;
+      var failed=0;
+      return todo.reduce(function(chain,item){
+        return chain.then(function(){
+          return shrink(item.f).then(function(blob){
+            var rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),blob:blob,takenAt:item.t,late:!!item.late};
+            return idbPut(rec).then(function(){
+              S.photos.push({id:rec.id,url:URL.createObjectURL(blob),blob:blob,takenAt:rec.takenAt,late:rec.late});
+              if(item.late)S.grace++;
+            });
+          }).catch(function(){failed++;});
+        }).then(function(){S.busy--;save();if(S.phase==='roll')render();});
+      },Promise.resolve()).then(function(){return failed;});
+    }).catch(function(){return 1;}).then(function(failed){
       S.busy=0;
+      S.photos.sort(function(a,b){return a.takenAt-b.takenAt;});
       if(failed)S.err=failed+' photo'+(failed>1?'s':'')+' couldn\u2019t be read (try a JPEG or PNG).';
-      if(S.phase==='roll')render();
+      save();if(S.phase==='roll')render();
     });
   }
 
@@ -286,7 +360,7 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
       clearInterval(timer);
       var res=r[0];
       if(S.out){URL.revokeObjectURL(S.out.print);URL.revokeObjectURL(S.out.preview);}
-      S.out={print:URL.createObjectURL(new Blob([res.printBytes],{type:'application/pdf'})),preview:URL.createObjectURL(new Blob([res.previewBytes],{type:'application/pdf'}))};
+      S.out={print:URL.createObjectURL(new Blob([res.printBytes],{type:'application/octet-stream'})),bytes:res.printBytes,preview:URL.createObjectURL(new Blob([res.previewBytes],{type:'application/pdf'}))};
       S.phase='ready';render();
     }).catch(function(e){
       clearInterval(timer);console.error(e);
@@ -299,7 +373,8 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
     app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h1 class="big">Your zine is ready.</h1>'+
       '<p>Print it single-sided on one sheet of '+(S.paper==='A4'?'A4':'US Letter')+', landscape, at 100% size (no "fit to page").</p>'+
       '<div class="spacer"></div>'+
-      '<a class="btn" style="text-decoration:none;text-align:center;display:block" href="'+S.out.print+'" download="'+fname+'">Download print sheet (PDF)</a>'+
+      '<button class="btn" id="dl" style="width:100%">Download print sheet (PDF)</button>'+
+      '<p class="tiny" id="dlmsg" style="text-align:center;min-height:20px"></p>'+
       '<div style="height:12px"></div>'+
       '<a class="btn alt" style="text-decoration:none;text-align:center;display:block" href="'+S.out.preview+'" target="_blank" rel="noopener">Preview the 8 pages</a>'+
       '<details><summary>How to fold it</summary><ol>'+
@@ -310,8 +385,16 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
       '<li>Open it, fold the long way, and push the two ends toward each other so the slit opens into a plus sign.</li>'+
       '<li>Press it flat into a little booklet, cover on top.</li></ol></details>'+
       '<div style="height:18px"></div><button class="link" id="swap">Swap some photos</button><br><button class="link" id="again">Start another roll</button>';
+    document.getElementById('dl').onclick=function(){
+      var a=document.createElement('a');a.href=S.out.print;a.download=fname;a.rel='noopener';
+      document.body.appendChild(a);a.click();a.remove();
+      var inApp=/FBAN|FBAV|Instagram|Line\/|WhatsApp|MicroMessenger|; wv\)/i.test(navigator.userAgent);
+      document.getElementById('dlmsg').textContent=inApp
+        ?'Downloads often fail inside chat apps. Open this page in Chrome or Safari and try again.'
+        :'Download started. Check your browser\u2019s downloads.';
+    };
     document.getElementById('swap').onclick=function(){S.phase='pick';render();};
-    document.getElementById('again').onclick=function(){wipe();S={phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:S.paper,busy:0,err:null,stage:0,out:null,seen:{}};render();};
+    document.getElementById('again').onclick=function(){wipe();S={phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:S.paper,busy:0,err:null,stage:0,out:null,seen:{},rejected:[]};render();};
   }
 
   var lastState='';
