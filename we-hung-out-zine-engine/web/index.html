@@ -81,19 +81,71 @@ details{margin-top:18px}summary{cursor:pointer;font-family:var(--hand);font-size
 ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
 .notice{background:rgba(255,255,255,.14);border-radius:14px;padding:12px 16px;margin-top:14px;font-size:16px}.notice p{margin:0 0 4px}
 .err{color:#ffb4b4;font-size:15px;margin-top:14px}
+
+@font-face{font-family:"Z-slab";src:url(fonts/slab.ttf)}
+@font-face{font-family:"Z-bold";src:url(fonts/bold.ttf)}
+@font-face{font-family:"Z-hand";src:url(fonts/hand.ttf)}
+@font-face{font-family:"Z-serif";src:url(fonts/serif.ttf)}
+@font-face{font-family:"Z-type";src:url(fonts/type.ttf)}
+.top{max-width:480px;margin:0 auto;padding:16px 22px 0}
+.logo{font:inherit;font-weight:800;font-size:22px;letter-spacing:-.03em;line-height:1;color:var(--ink);background:var(--flash-yellow);border:0;border-radius:12px;padding:10px 14px;cursor:pointer;transform:rotate(-3deg);box-shadow:0 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.logo:active{transform:rotate(-3deg) translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.logo:focus-visible{outline:3px solid var(--print-white);outline-offset:3px}
+#app{padding-top:14px}
+.credit{max-width:480px;margin:0 auto;padding:6px 22px calc(18px + env(safe-area-inset-bottom,0px));text-align:center;font-family:var(--hand);font-size:19px;opacity:.5}
+.nav{display:flex;gap:12px;margin-top:18px}
+.nav .btn{flex:1;padding:16px 12px;font-size:18px}
+.nav .btn:first-child:not(:last-child){flex:.6}
+.bar .nav{margin-top:0}
+.pvgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}
+.pvc{position:relative;display:block;padding:0;border:0;background:none;cursor:pointer}
+.pvc canvas{display:block;width:100%;height:auto;background:#fff;border-radius:3px;box-shadow:0 3px 0 var(--ink)}
+.pvc span{position:absolute;left:4px;top:3px;font-size:11px;font-weight:800;color:var(--ink);background:var(--flash-yellow);border-radius:8px;padding:1px 6px}
+.pvc.cur canvas{outline:3px solid var(--flash-yellow);outline-offset:2px}
+.mainpv{margin:16px auto 0;max-width:300px}
+.mainpv canvas{display:block;width:100%;height:auto;background:#fff;border-radius:4px;box-shadow:0 5px 0 var(--ink)}
+.thumbs{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:14px}
+.panel{background:rgba(255,255,255,.12);border-radius:16px;padding:14px 16px 16px;margin-top:16px}
+.panel h3{margin:0;font-family:var(--hand);font-weight:600;font-size:26px;color:var(--flash-yellow);line-height:1}
+.panel label{margin-top:12px;font-size:22px}
+.panel input[type=text],.panel textarea{font-size:20px;padding:10px 12px;box-shadow:0 3px 0 var(--ink)}
+textarea{width:100%;font:inherit;font-weight:800;color:var(--ink);background:var(--print-white);border:0;border-radius:12px;resize:vertical;min-height:70px;margin-top:6px}
+input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{font:inherit;font-weight:800;font-size:15px;border:0;border-radius:999px;padding:9px 14px;cursor:pointer;background:transparent;color:var(--print-white);box-shadow:inset 0 0 0 2px var(--print-white)}
+.chip.sel{background:var(--print-white);color:var(--ink)}
+.sw{width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;box-shadow:0 0 0 2px var(--print-white)}
+.sw.sel{box-shadow:0 0 0 3px var(--flash-yellow),0 0 0 5px var(--ink)}
+.posg{display:grid;grid-template-columns:repeat(3,38px);gap:6px;margin-top:8px}
+.posg button{height:30px;border:0;border-radius:6px;cursor:pointer;background:rgba(255,255,255,.25)}
+.posg button.sel{background:var(--flash-yellow)}
+.swap{display:flex;gap:8px;overflow-x:auto;padding:8px 2px 10px}
+.swap button{flex:none;width:52px;height:68px;padding:0;border:0;border-radius:4px;overflow:hidden;cursor:pointer;opacity:.7}
+.swap button.sel{opacity:1;outline:3px solid var(--flash-yellow)}
+.swap img{width:100%;height:100%;object-fit:cover;display:block}
+.small{font-size:15px;opacity:.85}
+.fold{display:flex;gap:14px;align-items:center;background:var(--print-white);color:var(--ink);border-radius:18px;padding:12px 16px 12px 12px;margin-top:14px;box-shadow:0 5px 0 var(--ink)}
+.fold svg{flex:none;width:128px;height:auto}
+.fold b{font-family:var(--hand);font-size:24px;color:var(--flash-blue);display:block;line-height:1}
+.fold p{margin:4px 0 0;font-size:16px;line-height:1.3}
+.msg{min-height:22px;text-align:center;font-size:15px;margin:10px 0 0}
+.msg a{color:var(--flash-yellow)}
 </style>
-<script src="zine-engine.js"></script>
 </head>
 <body>
-<body>
+<header class="top"><button class="logo" id="logo" aria-label="We hung out - start over">WHO</button></header>
 <main id="app" aria-live="polite"></main>
+<footer class="credit">made by Riann</footer>
 <script>
 (function(){
   var app=document.getElementById('app');
-  var MAX_GRACE=5, MAX_PX=1600;
+  var MAX_GRACE=5, MAX_PX=1600, STAGE_MS=2200, SLACK=120000, LATE_MS=30*60000;
   var STAGES=["Finding your photos...","Removing duplicates...","Finding the best moments...","Building your story...","Composing your zine..."];
-  var STAGE_MS=2200;
-  var S={phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:'A4',busy:0,err:null,stage:0,out:null,seen:{},rejected:[]};
+  var FONTS=[['slab','Slab'],['bold','Bold'],['hand','Hand'],['serif','Serif'],['type','Type']];
+  var COLORS={ink:'#1a1a1a',white:'#ffffff',yellow:'#ffd93b',blue:'#2b3bff',blush:'#ff8fb1'};
+  function fresh(paper){return {phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:paper||'A4',busy:0,err:null,stage:0,seen:{},rejected:[],editing:false,design:null,idx:0,back:'ready',dlUrl:null,dlBusy:false};}
+  var S=fresh();
+  var timer=null;
 
   /* ---------- optional blue tuning (a phone's night/eye-comfort mode can tint blue purple) ---------- */
   try{
@@ -105,10 +157,17 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
       var tc=document.querySelector('meta[name=theme-color]');if(tc)tc.setAttribute('content','#'+bv);}
   }catch(e){}
 
-  /* ---------- tiny storage helpers (photos live on this device only) ---------- */
-  function meta(){try{return JSON.parse(localStorage.getItem('whoRoll2')||'null');}catch(e){return null;}}
-  function save(){try{localStorage.setItem('whoRoll2',JSON.stringify({phase:S.phase==='developing'||S.phase==='ready'?'pick':S.phase,name:S.name,start:S.start,end:S.end,grace:S.grace,sel:S.sel,paper:S.paper}));}catch(e){}}
-  function wipe(){try{localStorage.removeItem('whoRoll2');}catch(e){} idbClear();}
+  /* ---------- storage: roll details + design in localStorage, photos in IndexedDB (this device only) ---------- */
+  function save(){
+    if(!S.start)return;
+    var ph=S.phase;
+    if(ph==='developing')ph='pick';
+    else if(ph==='custom'||ph==='fold')ph=S.design?'ready':'roll';
+    else if(ph==='setup'||ph==='home')ph='roll';
+    try{localStorage.setItem('whoRoll3',JSON.stringify({phase:ph,name:S.name,start:S.start,end:S.end,grace:S.grace,sel:S.sel,paper:S.paper,design:S.design}));}catch(e){}
+  }
+  function meta(){try{return JSON.parse(localStorage.getItem('whoRoll3')||'null');}catch(e){return null;}}
+  function wipe(){try{localStorage.removeItem('whoRoll3');}catch(e){} idbClear();}
   var dbp=null;
   function db(){
     if(dbp)return dbp;
@@ -124,20 +183,45 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
   function idbAll(){return db().then(function(d){return new Promise(function(res,rej){var q=d.transaction('photos').objectStore('photos').getAll();q.onsuccess=function(){res(q.result||[]);};q.onerror=function(){rej(q.error);};});}).catch(function(){return [];});}
   function idbClear(){return db().then(function(d){return new Promise(function(res){var t=d.transaction('photos','readwrite');t.objectStore('photos').clear();t.oncomplete=res;t.onerror=res;});}).catch(function(){});}
 
-  /* ---------- helpers ---------- */
-  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  /* ---------- small helpers ---------- */
+  function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function two(n){return(n<10?'0':'')+n;}
   function fmt(ms){var d=new Date(ms),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+two(m)+' '+ap;}
   function hhmm(ms){var d=new Date(ms);return two(d.getHours())+':'+two(d.getMinutes());}
+  function ymd(d){return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate());}
+  function fmtDate(ms){return new Date(ms).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});}
   function left(ms){var s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),c=s%60;return h>0?h+'h '+m+'m':m>0?m+'m '+two(c)+'s':c+'s';}
+  function windowText(){return fmtDate(S.start)+', '+fmt(S.start)+' to '+fmt(S.end);}
   function state(){var n=Date.now();return n>=S.end?'closed':n<S.start?'waiting':'active';}
   function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
   function byId(id){return S.photos.filter(function(p){return p.id===id;})[0];}
+  function keepScroll(fn){var y=window.scrollY;fn();window.scrollTo(0,y);}
+  function navBar(back,next,nextOff,sticky){
+    var h='<div class="nav">'+(back?'<button class="btn alt" id="nb">'+back+'</button>':'')+(next?'<button class="btn" id="nn"'+(nextOff?' disabled':'')+'>'+next+'</button>':'')+'</div>';
+    return sticky?'<div class="bar">'+h+'</div>':h;
+  }
 
-  function fmtDate(ms){return new Date(ms).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});}
-  function ymd(d){return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate());}
+  /* ---------- engine, fonts, images (loaded only when needed) ---------- */
+  var engineP=null,fontBytes={},fontP={},imgEl={};
+  function loadEngine(){
+    if(window.ZineEngine)return Promise.resolve();
+    if(engineP)return engineP;
+    engineP=new Promise(function(res,rej){var sc=document.createElement('script');sc.src='zine-engine.js';sc.onload=res;sc.onerror=function(){engineP=null;rej(new Error('Could not load the zine maker. Check your connection.'));};document.head.appendChild(sc);});
+    return engineP;
+  }
+  function loadFont(k){
+    if(fontP[k])return fontP[k];
+    fontP[k]=fetch('fonts/'+k+'.ttf').then(function(r){if(!r.ok)throw new Error('font');return r.arrayBuffer();}).then(function(b){fontBytes[k]=new Uint8Array(b);}).catch(function(){fontP[k]=null;throw new Error('Could not load a font.');});
+    return fontP[k];
+  }
+  function ensureFont(k){return Promise.all([loadFont(k),document.fonts?document.fonts.load('24px "Z-'+k+'"'):0]);}
+  function loadImgEl(p){
+    if(!p)return Promise.resolve();
+    if(imgEl[p.id]&&imgEl[p.id].complete&&imgEl[p.id].naturalWidth)return Promise.resolve();
+    return new Promise(function(res,rej){var i=new Image();i.onload=function(){imgEl[p.id]=i;res();};i.onerror=function(){rej(new Error('photo'));};i.src=p.url;});
+  }
 
-  /* ---------- when was this photo actually taken? EXIF first, file date as a fallback ---------- */
+  /* ---------- when was this photo taken? EXIF first, file date as a fallback ---------- */
   function readTaken(file){
     var fallback=file.lastModified||Date.now();
     if(!/jpe?g/i.test((file.type||'')+file.name))return Promise.resolve(fallback);
@@ -165,13 +249,10 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
       return fallback;
     }).catch(function(){return fallback;});
   }
-  // 'in' = taken during the roll, 'late' = taken in the 30 minutes after it ended (the "final photos"), 'out' = neither
-  var SLACK=120000, LATE_MS=30*60000;
   function classify(t){
     if(t<S.start-SLACK||t>S.end+LATE_MS)return 'out';
     return t>S.end+SLACK?'late':'in';
   }
-  function windowText(){return fmtDate(S.start)+', '+fmt(S.start)+' to '+fmt(S.end);}
 
   /* ---------- shrink a photo in the browser (fast, small, fixes odd formats) ---------- */
   function loadImg(file){return new Promise(function(res,rej){var u=URL.createObjectURL(file),i=new Image();i.onload=function(){URL.revokeObjectURL(u);res(i);};i.onerror=function(){URL.revokeObjectURL(u);rej(new Error('unreadable'));};i.src=u;});}
@@ -191,26 +272,33 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
     app.innerHTML='<div class="brand">we hung out</div><h1 class="big">Turn your night into a zine.</h1>'+
     '<p>Start a roll. Take photos like normal. When it ends, we develop your night into something you can hold.</p>'+
     '<div class="spacer"></div><button class="btn shutter" id="go">START A ROLL</button><div class="spacer"></div>';
-    document.getElementById('go').onclick=function(){S.phase='setup';render();};
+    document.getElementById('go').onclick=function(){S.editing=false;S.phase='setup';render();};
   }
 
   function setup(){
-    var now=new Date(),st=new Date(now);st.setSeconds(0,0);
-    var en=new Date(st.getTime()+4*3600000);
-    app.innerHTML='<div class="brand">new roll</div><h2 class="mid">What is this?</h2>'+
-    '<label for="nm">Give it a name</label><input type="text" id="nm" maxlength="28" value="Tonight">'+
-    '<label for="dt">Which day?</label><input type="date" id="dt" value="'+ymd(now)+'">'+
+    var ed=S.editing&&S.start;
+    var now=new Date(),st=ed?new Date(S.start):new Date(now);if(!ed)st.setSeconds(0,0);
+    var en=ed?new Date(S.end):new Date(st.getTime()+4*3600000);
+    app.innerHTML='<div class="brand">'+(ed?'edit roll':'new roll')+'</div><h2 class="mid">What is this?</h2>'+
+    '<label for="nm">Give it a name</label><input type="text" id="nm" maxlength="28" value="'+esc(ed?S.name:'Tonight')+'">'+
+    '<label for="dt">Which day?</label><input type="date" id="dt" value="'+ymd(st)+'">'+
     '<div class="row"><div><label for="st">Starts</label><input type="time" id="st" value="'+hhmm(st)+'"></div>'+
     '<div><label for="en">Ends</label><input type="time" id="en" value="'+hhmm(en)+'"></div></div>'+
     '<p class="tiny">Only photos taken between these two times are kept.</p><div class="spacer"></div>'+
-    '<button class="btn" id="start">Start roll</button><button class="link" id="back">Back</button>';
-    document.getElementById('back').onclick=function(){S.phase='home';render();};
-    document.getElementById('start').onclick=function(){
+    navBar(ed?'Back':'Back',ed?'Save':'Start roll');
+    document.getElementById('nb').onclick=function(){S.phase=ed?'roll':'home';render();};
+    document.getElementById('nn').onclick=function(){
       var dv=(document.getElementById('dt').value||ymd(new Date())).split('-');
       var t=function(id){var v=document.getElementById(id).value.split(':');return new Date(+dv[0],+dv[1]-1,+dv[2],+v[0],+v[1],0,0).getTime();};
       var a=t('st'),b=t('en');if(b<=a)b+=86400000;
-      S.name=(document.getElementById('nm').value||'Tonight').trim();S.start=a;S.end=b;
-      S.photos=[];S.seen={};S.grace=0;S.sel=[];S.err=null;S.rejected=[];idbClear();S.phase='roll';save();render();};
+      var nm=(document.getElementById('nm').value||'Tonight').trim();
+      if(ed){
+        if(S.design&&S.design.title&&S.design.title.text===S.name)S.design.title.text=nm;
+        S.name=nm;S.start=a;S.end=b;S.editing=false;S.phase='roll';save();render();return;
+      }
+      S.name=nm;S.start=a;S.end=b;S.photos=[];S.seen={};S.grace=0;S.sel=[];S.err=null;S.rejected=[];S.design=null;idbClear();
+      S.phase='roll';save();render();
+    };
   }
 
   function noticeHtml(){
@@ -222,41 +310,38 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
   }
 
   function roll(){
+    loadEngine().catch(function(){});
     var st=state(),closed=st==='closed';
     var head=st==='waiting'?'Roll starts soon':closed?'Roll closed':'Roll active';
-    var sub=windowText();
     var left5=MAX_GRACE-S.grace;
-    var html='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">'+head+'</h2><p style="margin-top:8px">'+sub+'</p>'+
+    var html='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">'+head+'</h2><p style="margin-top:8px">'+windowText()+' <button class="link" id="edit" style="padding:0 0 0 6px">Edit</button></p>'+
       '<div class="counter"><small>Photos captured</small><div class="num">'+S.photos.length+'</div>'+
       (closed?'<div class="time" id="tl">'+left5+' final photo'+(left5===1?'':'s')+' left</div>'
         :'<div class="time" id="tl">'+left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining')+'</div>')+'</div>'+
       '<div class="strip" id="strip"></div>'+noticeHtml();
-    if(closed)html+='<p class="note">Your roll is closed. You can still add photos taken during it, plus up to '+MAX_GRACE+' final ones from the 30 minutes after. Then pick your favorites.</p>';
+    if(closed)html+='<p class="note">Your roll is closed. You can still add photos taken during it, plus up to '+MAX_GRACE+' final ones from the 30 minutes after.</p>';
     if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
     html+='<div class="spacer"></div><input type="file" id="file" accept="image/*" multiple>';
     var canAdd=!S.busy&&(st==='active'||closed);
     html+='<button class="btn alt" id="add"'+(canAdd?'':' disabled')+'>'+(S.busy?'Adding... '+S.busy+' left':'Add photos')+'</button>';
-    if(closed){
-      html+='<div style="height:12px"></div><button class="btn" id="dev"'+(S.photos.length&&!S.busy?'':' disabled')+'>Pick your 8</button>';
-      if(S.busy)html+='<p class="tiny" style="text-align:center">Still adding your photos...</p>';
-      else if(!S.photos.length)html+='<p class="tiny" style="text-align:center">Add at least one photo first. Photos stay on the device you add them on.</p>';
-    } else {
-      if(st==='waiting')html+='<button class="link" id="startnow">Start the roll right now</button><br>';
-      html+='<button class="link" id="skip">Testing: end this roll now</button>';
-      html+='<p class="tiny" style="text-align:center">Your photos stay on this device. Use the same phone or computer from start to finish.</p>';
-    }
+    var canPick=closed&&S.photos.length&&!S.busy;
+    html+=navBar('Back','Pick your 8',!canPick);
+    if(!closed){
+      html+='<div style="text-align:center">'+(st==='waiting'?'<button class="link" id="startnow">Start the roll right now</button><br>':'')+'<button class="link" id="skip">Testing: end this roll now</button></div>'+
+      '<p class="tiny" style="text-align:center">Pick your 8 unlocks when the roll ends. Your photos stay on this device.</p>';
+    } else if(S.busy)html+='<p class="tiny" style="text-align:center">Still adding your photos...</p>';
+    else if(!S.photos.length)html+='<p class="tiny" style="text-align:center">Add at least one photo first. Photos stay on the device you add them on.</p>';
     app.innerHTML=html;drawStrip();
     var file=document.getElementById('file');
     document.getElementById('add').onclick=function(){file.click();};
     file.onchange=function(){addFiles(file.files,false);file.value='';};
+    document.getElementById('edit').onclick=function(){S.editing=true;S.phase='setup';render();};
     var fo=document.getElementById('force');
     if(fo)fo.onclick=function(){var files=S.rejected.map(function(r){return r.f;});S.rejected=[];addFiles(files,true);};
-    if(closed)document.getElementById('dev').onclick=function(){S.phase='pick';S.err=null;save();render();};
-    else {
-      document.getElementById('skip').onclick=function(){S.end=Date.now();save();render();};
-      var sn=document.getElementById('startnow');
-      if(sn)sn.onclick=function(){S.start=Date.now()-1000;save();render();};
-    }
+    document.getElementById('nb').onclick=function(){S.editing=true;S.phase='setup';render();};
+    document.getElementById('nn').onclick=function(){S.phase='pick';S.err=null;save();render();};
+    var sk=document.getElementById('skip');if(sk)sk.onclick=function(){S.end=Date.now();save();render();};
+    var sn=document.getElementById('startnow');if(sn)sn.onclick=function(){S.start=Date.now()-1000;save();render();};
   }
   function drawStrip(){
     var el=document.getElementById('strip');if(!el)return;
@@ -266,18 +351,18 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
   }
 
   function addFiles(list,force){
-    var fresh=[];
+    var fresh2=[];
     Array.prototype.slice.call(list).forEach(function(f){
       var k=f.name+'|'+f.size+'|'+f.lastModified;
       if(S.seen[k])return;
-      fresh.push({f:f,k:k});
+      fresh2.push({f:f,k:k});
     });
-    if(!fresh.length)return;
-    S.busy=fresh.length;S.err=null;S.rejected=[];render();
-    Promise.all(fresh.map(function(it){return readTaken(it.f).then(function(t){it.t=t;});})).then(function(){
-      fresh.sort(function(a,b){return a.t-b.t;});
+    if(!fresh2.length)return;
+    S.busy=fresh2.length;S.err=null;S.rejected=[];render();
+    Promise.all(fresh2.map(function(it){return readTaken(it.f).then(function(t){it.t=t;});})).then(function(){
+      fresh2.sort(function(a,b){return a.t-b.t;});
       var todo=[],room=MAX_GRACE-S.grace;
-      fresh.forEach(function(it){
+      fresh2.forEach(function(it){
         var c=force?'in':classify(it.t);
         if(c==='out'){it.why='out';S.rejected.push(it);}
         else if(c==='late'){if(room>0){room--;it.late=true;S.seen[it.k]=1;todo.push(it);}else{it.why='cap';S.rejected.push(it);}}
@@ -316,111 +401,322 @@ ol{padding-left:22px;margin:8px 0 0}li{margin:6px 0}
     html+='</div>';
     if(S.photos.length>8)html+='<button class="link" id="auto">Just pick 8 for me</button>';
     html+='<label>Paper</label><div class="seg"><button data-p="A4" class="'+(S.paper==='A4'?'sel':'')+'">A4</button><button data-p="LETTER" class="'+(S.paper==='LETTER'?'sel':'')+'">US Letter</button></div>';
-    if(n>0&&n<8)html+='<p class="tiny">With '+n+' photo'+(n>1?'s':'')+' picked, we\u2019ll repeat them to fill all 8 pages.</p>';
+    if(n>0&&n<8)html+='<p class="tiny">With '+n+' photo'+(n>1?'s':'')+' picked, we\u2019ll repeat them to fill the pages and finish with a "Fin." page. You can change all of that next.</p>';
     if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
-    html+='<div class="bar"><button class="btn" id="make" style="width:100%"'+(n?'':' disabled')+'>Develop my zine ('+n+'/8)</button>'+
-      '<div style="text-align:center"><button class="link" id="back">Back to my roll</button></div></div>';
+    html+=navBar('Back','Develop my zine ('+n+'/8)',!n,true);
     app.innerHTML=html;
     Array.prototype.forEach.call(document.querySelectorAll('.cell'),function(c){
       c.onclick=function(){
         var id=c.getAttribute('data-id'),i=S.sel.indexOf(id);
         if(i>-1)S.sel.splice(i,1);else if(S.sel.length<8)S.sel.push(id);
-        save();var y=window.scrollY;pick();window.scrollTo(0,y);
+        S.design=null;save();keepScroll(pick);
       };
     });
     var au=document.getElementById('auto');
     if(au)au.onclick=function(){
       var sorted=S.photos.slice().sort(function(a,b){return a.takenAt-b.takenAt;}),out=[];
       for(var k=0;k<8;k++)out.push(sorted[Math.round(k*(sorted.length-1)/7)].id);
-      S.sel=out;save();pick();
+      S.sel=out;S.design=null;save();pick();
     };
-    Array.prototype.forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){S.paper=b.getAttribute('data-p');save();var y=window.scrollY;pick();window.scrollTo(0,y);};});
-    document.getElementById('back').onclick=function(){S.phase='roll';render();};
-    document.getElementById('make').onclick=develop;
+    Array.prototype.forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){S.paper=b.getAttribute('data-p');save();keepScroll(pick);};});
+    document.getElementById('nb').onclick=function(){S.phase='roll';render();};
+    document.getElementById('nn').onclick=develop;
+  }
+
+  /* ---------- design model ---------- */
+  function newDesign(){
+    var ids=S.sel.filter(byId),n=ids.length,pages=[];
+    for(var i=0;i<8;i++){
+      if(i<n||(n<8&&i<7))pages.push({kind:'photo',pid:ids[i%n],fit:'auto',zoom:1,panX:0,panY:0,caption:''});
+      else pages.push({kind:'text',text:'Fin.',bg:'ink'});
+    }
+    return {frame:'none',font:'slab',capSize:10,textSize:56,textBg:'ink',
+      title:{show:true,text:S.name,sub:fmtDate(S.start),size:24,subSize:12,pos:'bc',color:'auto',upper:true},pages:pages};
+  }
+  function validDesign(){
+    var d=S.design;if(!d||!d.pages||d.pages.length!==8)return false;
+    var first=S.photos.length?S.photos[0].id:null;
+    d.pages.forEach(function(p){if(p.kind==='photo'&&!byId(p.pid))p.pid=first;});
+    return !!first;
   }
 
   /* ---------- the "developing" wait (always plays all five stages) ---------- */
-  var timer=null;
   function developing(){
     var frames='';for(var i=0;i<STAGES.length;i++)frames+='<div class="frame'+(i<S.stage?' done':i===S.stage?' now':'')+'"></div>';
     app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">Developing your night</h2>'+
       '<div class="film">'+frames+'</div><p class="note" style="font-size:30px">'+STAGES[S.stage]+'</p>'+
       '<p class="tiny">Hang tight. Keep this tab open.</p>';
   }
+  function prepareAssets(){
+    var ids={};S.design.pages.forEach(function(p){if(p.kind==='photo')ids[p.pid]=1;});
+    var loads=Object.keys(ids).map(function(id){return loadImgEl(byId(id));});
+    return Promise.all([loadEngine(),ensureFont(S.design.font)].concat(loads));
+  }
   function develop(){
-    var chosen=S.sel.map(byId).filter(Boolean);
-    if(!chosen.length)return;
-    S.phase='developing';S.stage=0;S.err=null;render();
+    if(!S.sel.filter(byId).length)return;
+    if(!S.design)S.design=newDesign();
+    S.idx=0;S.phase='developing';S.stage=0;S.err=null;render();
     timer=setInterval(function(){if(S.stage<STAGES.length-1){S.stage++;developing();}},STAGE_MS);
-    var build=Promise.all(chosen.map(function(p){return p.blob.arrayBuffer();})).then(function(bufs){
-      return ZineEngine.buildZine({photos:bufs.map(function(b){return new Uint8Array(b);}),title:S.name,paperSize:S.paper});
-    });
-    // The wait is part of the product: never skip the animation, even when the PDF is ready sooner.
-    Promise.all([build,wait(STAGE_MS*STAGES.length)]).then(function(r){
-      clearInterval(timer);
-      var res=r[0];
-      if(S.out){URL.revokeObjectURL(S.out.print);URL.revokeObjectURL(S.out.preview);}
-      S.out={print:URL.createObjectURL(new Blob([res.printBytes],{type:'application/octet-stream'})),bytes:res.printBytes,preview:URL.createObjectURL(new Blob([res.previewBytes],{type:'application/pdf'}))};
-      S.phase='ready';render();
+    // The wait is part of the product: never skip the animation, even when everything is ready sooner.
+    Promise.all([prepareAssets(),wait(STAGE_MS*STAGES.length)]).then(function(){
+      clearInterval(timer);S.phase='ready';save();render();
     }).catch(function(e){
       clearInterval(timer);console.error(e);
-      S.err='Something went wrong making the PDF: '+(e&&e.message?e.message:e);S.phase='pick';render();
+      S.err='Something went wrong: '+(e&&e.message?e.message:e);S.phase='pick';render();
     });
+  }
+
+  /* ---------- on-screen preview: paints the same layout the PDF uses ---------- */
+  var mctx=document.createElement('canvas').getContext('2d');
+  function measureFn(){return function(s,size){mctx.font=size+'px "Z-'+S.design.font+'"';return mctx.measureText(s).width;};}
+  function specFor(i){
+    var pg=S.design.pages[i];
+    if(pg.kind==='text')return {kind:'text',text:pg.text,bg:pg.bg};
+    var im=imgEl[pg.pid];
+    return {kind:'photo',imgRef:pg.pid,iw:im.naturalWidth,ih:im.naturalHeight,fit:pg.fit,zoom:pg.zoom,panX:pg.panX,panY:pg.panY,caption:pg.caption};
+  }
+  function paintPage(canvas,i,pxW){
+    var Z=window.ZineEngine,ps=Z.panelSize(S.paper),W=ps.w,H=ps.h,k=pxW/W;
+    canvas.width=pxW;canvas.height=Math.round(H*k);
+    var c=canvas.getContext('2d');c.setTransform(k,0,0,k,0,0);
+    c.fillStyle='#fff';c.fillRect(0,0,W,H);
+    var out=Z.layoutPage(specFor(i),S.design,W,H,measureFn(),i===0).ops;
+    out.forEach(function(op){
+      var col='rgb('+(op.c?op.c.join(','):'0,0,0')+')';
+      if(op.t==='rect'){c.fillStyle=col;c.fillRect(op.x,H-(op.y+op.h),op.w,op.h);}
+      else if(op.t==='img'){
+        c.save();c.beginPath();c.rect(op.clip.x,H-(op.clip.y+op.clip.h),op.clip.w,op.clip.h);c.clip();
+        c.drawImage(imgEl[op.ref],op.x,H-(op.y+op.h),op.w,op.h);c.restore();
+      } else if(op.t==='text'){
+        c.font=op.size+'px "Z-'+S.design.font+'"';c.fillStyle=col;c.textAlign=op.align;c.textBaseline='alphabetic';c.fillText(op.s,op.x,H-op.y);
+      }
+    });
+  }
+  var raf=0;
+  function repaintAll(){
+    if(raf)return;
+    raf=requestAnimationFrame(function(){
+      raf=0;
+      Array.prototype.forEach.call(document.querySelectorAll('canvas[data-i]'),function(cv){
+        try{paintPage(cv,+cv.getAttribute('data-i'),+cv.getAttribute('data-w')||240);}catch(e){}
+      });
+    });
+  }
+
+  function fname(){return 'we-hung-out-'+(S.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'zine')+'.pdf';}
+  function makePdf(){
+    var d=S.design,idxMap={},order=[];
+    d.pages.forEach(function(p){if(p.kind==='photo'&&!(p.pid in idxMap)){idxMap[p.pid]=order.length;order.push(p.pid);}});
+    return Promise.all([loadEngine(),loadFont(d.font)].concat(order.map(function(id){return byId(id).blob.arrayBuffer();}))).then(function(r){
+      var bufs=r.slice(2).map(function(b){return new Uint8Array(b);});
+      var pages=d.pages.map(function(p){return p.kind==='text'?{kind:'text',text:p.text,bg:p.bg}:{kind:'photo',photo:idxMap[p.pid],fit:p.fit,zoom:p.zoom,panX:p.panX,panY:p.panY,caption:p.caption};});
+      return ZineEngine.buildZine({photos:bufs,pages:pages,design:d,paperSize:S.paper,fontBytes:fontBytes});
+    }).then(function(res){return res.printBytes;});
+  }
+  function download(){
+    var msg=document.getElementById('dlmsg');
+    if(S.dlBusy)return;
+    S.dlBusy=true;msg.textContent='Making your PDF...';
+    makePdf().then(function(bytes){
+      if(S.dlUrl)URL.revokeObjectURL(S.dlUrl);
+      S.dlUrl=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
+      var a=document.createElement('a');a.href=S.dlUrl;a.download=fname();a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+      var inApp=/FBAN|FBAV|Instagram|Line\/|WhatsApp|MicroMessenger|; wv\)/i.test(navigator.userAgent);
+      msg.innerHTML=(inApp?'Downloads often fail inside chat apps. Open this page in Chrome or Safari. ':'Download started. ')+'Didn\u2019t start? <a href="'+S.dlUrl+'" download="'+esc(fname())+'">Tap here to save</a>.';
+    }).catch(function(e){console.error(e);msg.textContent='Couldn\u2019t make the PDF: '+(e&&e.message?e.message:e);})
+      .then(function(){S.dlBusy=false;});
   }
 
   function ready(){
-    var fname='we-hung-out-'+S.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.pdf';
-    app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h1 class="big">Your zine is ready.</h1>'+
-      '<p>Print it single-sided on one sheet of '+(S.paper==='A4'?'A4':'US Letter')+', landscape, at 100% size (no "fit to page").</p>'+
-      '<div class="spacer"></div>'+
-      '<button class="btn" id="dl" style="width:100%">Download print sheet (PDF)</button>'+
-      '<p class="tiny" id="dlmsg" style="text-align:center;min-height:20px"></p>'+
-      '<div style="height:12px"></div>'+
-      '<a class="btn alt" style="text-decoration:none;text-align:center;display:block" href="'+S.out.preview+'" target="_blank" rel="noopener">Preview the 8 pages</a>'+
-      '<details><summary>How to fold it</summary><ol>'+
-      '<li>Print, then fold the sheet in half the long way and open it again.</li>'+
-      '<li>Fold it in half the short way and open it again.</li>'+
-      '<li>Fold both short ends in to meet the center crease, then open it flat. You\u2019ll see 8 panels.</li>'+
-      '<li>Fold the short way again and cut along the center crease from the folded edge, one panel deep (the dashed line shows where).</li>'+
-      '<li>Open it, fold the long way, and push the two ends toward each other so the slit opens into a plus sign.</li>'+
-      '<li>Press it flat into a little booklet, cover on top.</li></ol></details>'+
-      '<div style="height:18px"></div><button class="link" id="swap">Swap some photos</button><br><button class="link" id="again">Start another roll</button>';
-    document.getElementById('dl').onclick=function(){
-      var a=document.createElement('a');a.href=S.out.print;a.download=fname;a.rel='noopener';
-      document.body.appendChild(a);a.click();a.remove();
-      var inApp=/FBAN|FBAV|Instagram|Line\/|WhatsApp|MicroMessenger|; wv\)/i.test(navigator.userAgent);
-      document.getElementById('dlmsg').textContent=inApp
-        ?'Downloads often fail inside chat apps. Open this page in Chrome or Safari and try again.'
-        :'Download started. Check your browser\u2019s downloads.';
-    };
-    document.getElementById('swap').onclick=function(){S.phase='pick';render();};
-    document.getElementById('again').onclick=function(){wipe();S={phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:S.paper,busy:0,err:null,stage:0,out:null,seen:{},rejected:[]};render();};
+    var cells='';for(var i=0;i<8;i++)cells+='<button class="pvc" data-go="'+i+'" aria-label="Edit page '+(i+1)+'"><canvas data-i="'+i+'" data-w="240"></canvas><span>'+(i+1)+'</span></button>';
+    app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h1 class="mid" style="font-weight:800;letter-spacing:-.035em;line-height:.92;margin:0">Your zine is ready.</h1>'+
+      '<p>Here are your 8 pages. Download it as it is, or tap a page to adjust it.</p>'+
+      '<div class="pvgrid">'+cells+'</div>'+
+      '<label>Paper</label><div class="seg"><button data-p="A4" class="'+(S.paper==='A4'?'sel':'')+'">A4</button><button data-p="LETTER" class="'+(S.paper==='LETTER'?'sel':'')+'">US Letter</button></div>'+
+      '<div style="height:16px"></div><button class="btn" id="dl" style="width:100%">Download as is (PDF)</button>'+
+      '<div style="height:12px"></div><button class="btn alt" id="cu" style="width:100%">Customize</button>'+
+      '<p class="msg" id="dlmsg"></p>'+
+      '<div style="text-align:center"><button class="link" id="fold">How to fold it</button></div>'+
+      '<p class="tiny" style="text-align:center">Print single-sided on one sheet, landscape, at 100% size (no "fit to page").</p>'+
+      navBar('Back',null,false);
+    document.getElementById('nb').onclick=function(){S.phase='pick';render();};
+    Array.prototype.forEach.call(document.querySelectorAll('.pvc'),function(b){b.onclick=function(){S.idx=+b.getAttribute('data-go');S.phase='custom';render();};});
+    Array.prototype.forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){S.paper=b.getAttribute('data-p');save();keepScroll(ready);};});
+    document.getElementById('dl').onclick=download;
+    document.getElementById('cu').onclick=function(){S.phase='custom';render();};
+    document.getElementById('fold').onclick=function(){S.back='ready';S.phase='fold';render();};
+    repaintAll();
   }
 
-  var lastState='';
+  /* ---------- customize ---------- */
+  function seg(k,opts,cur){return '<div class="chips">'+opts.map(function(o){return '<button class="chip'+(String(cur)===String(o[0])?' sel':'')+'" data-k="'+k+'" data-v="'+o[0]+'">'+o[1]+'</button>';}).join('')+'</div>';}
+  function swatches(k,cur,withAuto){
+    var h='<div class="chips" style="align-items:center">';
+    if(withAuto)h+='<button class="chip'+(cur==='auto'?' sel':'')+'" data-k="'+k+'" data-v="auto">Auto</button>';
+    Object.keys(COLORS).forEach(function(c){h+='<button class="sw'+(cur===c?' sel':'')+'" data-k="'+k+'" data-v="'+c+'" style="background:'+COLORS[c]+'" aria-label="'+c+'"></button>';});
+    return h+'</div>';
+  }
+  function range(k,min,max,step,val){return '<input type="range" data-r="'+k+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'">';}
+  function custom(){
+    var d=S.design,i=S.idx,pg=d.pages[i],T=d.title;
+    var tabs='';for(var j=0;j<8;j++)tabs+='<button class="pvc'+(j===i?' cur':'')+'" data-go="'+j+'" aria-label="Page '+(j+1)+'"><canvas data-i="'+j+'" data-w="120"></canvas><span>'+(j+1)+'</span></button>';
+    var h='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">Customize</h2>'+
+      '<div class="mainpv"><canvas data-i="'+i+'" data-w="560"></canvas></div><div class="thumbs">'+tabs+'</div>';
+    // page controls
+    h+='<div class="panel"><h3>Page '+(i+1)+(i===0?' (cover)':i===7?' (back)':'')+'</h3>'+
+      '<label>What is on this page?</label>'+seg('p.kind',[['photo','Photo'],['text','Text']],pg.kind);
+    if(pg.kind==='photo'){
+      h+='<label>Photo fit</label>'+seg('p.fit',[['auto','Auto'],['cover','Fill the page'],['contain','Show whole photo']],pg.fit)+
+        '<label>Zoom</label>'+range('p.zoom',1,3,0.05,pg.zoom)+
+        '<label>Move left / right</label>'+range('p.panX',-1,1,0.02,pg.panX)+
+        '<label>Move down / up</label>'+range('p.panY',-1,1,0.02,pg.panY);
+      if(i>0)h+='<label for="cap">Caption</label><input type="text" id="cap" data-t="p.caption" maxlength="60" value="'+esc(pg.caption)+'" placeholder="Optional, shows under the photo">';
+      h+='<label>Swap photo</label><div class="swap">'+S.photos.map(function(p){return '<button data-swap="'+p.id+'" class="'+(p.id===pg.pid?'sel':'')+'" aria-label="photo"><img alt="" src="'+p.url+'"></button>';}).join('')+'</div>';
+    } else {
+      h+='<label for="tx">Text</label><textarea id="tx" data-t="p.text" maxlength="120">'+esc(pg.text)+'</textarea>'+
+        '<label>Background</label>'+swatches('p.bg',pg.bg||'ink',false);
+    }
+    h+='</div>';
+    // cover title
+    if(i===0){
+      h+='<div class="panel"><h3>Cover title</h3>'+
+        '<label>Show title</label>'+seg('t.show',[['true','Yes'],['false','No']],T.show!==false)+
+        '<label for="tt">Title</label><input type="text" id="tt" data-t="t.text" maxlength="40" value="'+esc(T.text)+'">'+
+        '<label for="ts">Subtitle</label><input type="text" id="ts" data-t="t.sub" maxlength="40" value="'+esc(T.sub)+'">'+
+        '<label>Title size</label>'+range('t.size',12,60,1,T.size)+
+        '<label>Subtitle size</label>'+range('t.subSize',8,28,1,T.subSize)+
+        '<label>Position</label><div class="posg">'+['tl','tc','tr','ml','mc','mr','bl','bc','br'].map(function(p){return '<button data-k="t.pos" data-v="'+p+'" class="'+(T.pos===p?'sel':'')+'" aria-label="'+p+'"></button>';}).join('')+'</div>'+
+        '<label>Color</label>'+swatches('t.color',T.color||'auto',true)+
+        '<label>Capital letters</label>'+seg('t.upper',[['true','ON'],['false','Off']],T.upper!==false)+'</div>';
+    } else h+='<p class="tiny">The title lives on page 1. Tap page 1 above to change it.</p>';
+    // look
+    h+='<div class="panel"><h3>Look</h3><label>Font</label><div class="chips">'+FONTS.map(function(f){return '<button class="chip'+(d.font===f[0]?' sel':'')+'" data-k="d.font" data-v="'+f[0]+'" style="font-family:\'Z-'+f[0]+'\'">'+f[1]+'</button>';}).join('')+'</div>'+
+      '<label>Photo border</label>'+seg('d.frame',[['none','None'],['thin','Thin'],['wide','Wide']],d.frame)+
+      '<label>Caption size</label>'+range('d.capSize',7,16,1,d.capSize)+
+      '<label>Text page size</label>'+range('d.textSize',24,90,1,d.textSize)+'</div>'+
+      '<p class="msg" id="dlmsg"></p>'+
+      navBar('Back','Download PDF',false,true);
+    app.innerHTML=h;
+    bindCustom();repaintAll();
+  }
+  function setVal(k,v){
+    var p=k.split('.'),o=p[0]==='p'?S.design.pages[S.idx]:p[0]==='t'?S.design.title:S.design;
+    if(v==='true')v=true;else if(v==='false')v=false;
+    o[p[1]]=v;
+    if(k==='p.kind'){
+      if(v==='text'){o.text=o.text||'Fin.';o.bg=o.bg||'ink';}
+      else{o.pid=o.pid||(S.photos[0]&&S.photos[0].id);o.fit=o.fit||'auto';o.zoom=o.zoom||1;o.panX=o.panX||0;o.panY=o.panY||0;o.caption=o.caption||'';}
+    }
+  }
+  function bindCustom(){
+    document.getElementById('nb').onclick=function(){save();S.phase='ready';render();};
+    document.getElementById('nn').onclick=download;
+    Array.prototype.forEach.call(document.querySelectorAll('.pvc'),function(b){b.onclick=function(){S.idx=+b.getAttribute('data-go');keepScroll(function(){render();});};});
+    Array.prototype.forEach.call(document.querySelectorAll('[data-k]'),function(b){
+      b.onclick=function(){
+        var k=b.getAttribute('data-k'),v=b.getAttribute('data-v');
+        setVal(k,v);
+        var pg=S.design.pages[S.idx],ready2=pg.kind==='photo'?loadImgEl(byId(pg.pid)):Promise.resolve();
+        if(k==='d.font'){Promise.all([ensureFont(v),ready2]).then(function(){save();keepScroll(custom);}).catch(function(){});return;}
+        ready2.then(function(){save();keepScroll(custom);});
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-r]'),function(r){
+      r.oninput=function(){setVal(r.getAttribute('data-r'),parseFloat(r.value));repaintAll();};
+      r.onchange=function(){save();};
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-t]'),function(t){
+      t.oninput=function(){setVal(t.getAttribute('data-t'),t.value);repaintAll();};
+      t.onchange=function(){save();};
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-swap]'),function(b){
+      b.onclick=function(){
+        var id=b.getAttribute('data-swap');
+        loadImgEl(byId(id)).then(function(){S.design.pages[S.idx].pid=id;S.design.pages[S.idx].panX=0;S.design.pages[S.idx].panY=0;S.design.pages[S.idx].zoom=1;save();keepScroll(custom);});
+      };
+    });
+  }
+
+  /* ---------- how to fold it ---------- */
+  function foldSvg(n){
+    var W=150,H=106,x0=10,y0=10,ink='#1a1a1a',g='#9aa0b8',y='#ffd93b';
+    var L=function(x1,y1,x2,y2,c,w,dash){return '<line x1="'+(x0+x1)+'" y1="'+(y0+y1)+'" x2="'+(x0+x2)+'" y2="'+(y0+y2)+'" stroke="'+c+'" stroke-width="'+w+'"'+(dash?' stroke-dasharray="'+dash+'"':'')+' stroke-linecap="round"/>';};
+    var s='<svg viewBox="0 0 170 126" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">';
+    if(n<=4){
+      s+='<rect x="'+x0+'" y="'+y0+'" width="'+W+'" height="'+H+'" rx="3" fill="#fff" stroke="'+ink+'" stroke-width="2"/>';
+      if(n>=2)s+=L(0,H/2,W,H/2,g,1.5,'4 3');
+      if(n>=3)s+=L(W/2,0,W/2,H,g,1.5,'4 3');
+      if(n>=4)s+=L(W/4,0,W/4,H,g,1.5,'4 3')+L(3*W/4,0,3*W/4,H,g,1.5,'4 3');
+      if(n===1)s+=L(0,H/2,W,H/2,y,5);
+      if(n===2)s+=L(W/2,0,W/2,H,y,5);
+      if(n===3){s+=L(W/4,0,W/4,H,y,5)+L(3*W/4,0,3*W/4,H,y,5);}
+      if(n===4)s+=L(W/4,H/2,3*W/4,H/2,'#e5484d',4,'6 4')+'<text x="'+(x0+W/2)+'" y="'+(y0+H/2-6)+'" text-anchor="middle" font-size="13" font-weight="800" fill="#e5484d" font-family="Arial">cut</text>';
+    } else if(n===5){
+      s+='<rect x="'+(x0+20)+'" y="'+(y0+36)+'" width="110" height="34" fill="#fff" stroke="'+ink+'" stroke-width="2"/><rect x="'+(x0+58)+'" y="'+(y0+6)+'" width="34" height="94" fill="#fff" stroke="'+ink+'" stroke-width="2"/>'+
+        '<rect x="'+(x0+59)+'" y="'+(y0+37)+'" width="32" height="32" fill="#fff"/>'+
+        '<path d="M '+(x0+4)+' '+(y0+53)+' l 12 0 m -5 -5 l 5 5 l -5 5" stroke="'+y+'" stroke-width="4" fill="none" stroke-linecap="round"/>'+
+        '<path d="M '+(x0+146)+' '+(y0+53)+' l -12 0 m 5 -5 l -5 5 l 5 5" stroke="'+y+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
+    } else {
+      s+='<rect x="'+(x0+62)+'" y="'+(y0+10)+'" width="54" height="90" rx="3" fill="#bbb" stroke="'+ink+'" stroke-width="2"/><rect x="'+(x0+54)+'" y="'+(y0+4)+'" width="54" height="90" rx="3" fill="#fff" stroke="'+ink+'" stroke-width="2"/>'+
+        '<text x="'+(x0+81)+'" y="'+(y0+52)+'" text-anchor="middle" font-size="14" font-weight="800" fill="'+ink+'" font-family="Arial">cover</text>';
+    }
+    return s+'</svg>';
+  }
+  var FOLD=[
+    ['Fold the long way','Fold the sheet in half so the two long edges meet. Press the crease hard, then open it flat.'],
+    ['Fold the short way','Now fold it in half so the two short edges meet. Crease it, then open it flat.'],
+    ['Fold the ends in','Fold each short end in to meet the center crease, then open it flat. You should see 8 rectangles.'],
+    ['Cut the middle','Fold the short way again. Cut along the center crease from the folded edge, one rectangle deep. The dashed "cut here" line on your printout shows where.'],
+    ['Pop it open','Open the sheet and fold it the long way. Hold the two short ends and push them toward each other until the slit opens into a plus sign.'],
+    ['Make the booklet','Fold the four flaps around into a little booklet with the cover on top, then press it flat.']
+  ];
+  function foldScreen(){
+    var h='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">How to fold it</h2><p>You need one sheet of paper, scissors and about two minutes.</p>';
+    FOLD.forEach(function(f,i){h+='<div class="fold">'+foldSvg(i+1)+'<div><b>'+(i+1)+'. '+f[0]+'</b><p>'+f[1]+'</p></div></div>';});
+    h+='<p class="tiny">Tip: print at 100% size, single-sided. If your printer shrinks the page to fit, the folds will not line up.</p>'+navBar('Back',null,false);
+    app.innerHTML=h;
+    document.getElementById('nb').onclick=function(){S.phase=S.back||'ready';render();};
+  }
+
+  /* ---------- router, logo, timers ---------- */
   function render(){
-    if(S.phase==='home')home();else if(S.phase==='setup')setup();
-    else if(S.phase==='roll'){lastState=state();roll();}
-    else if(S.phase==='pick')pick();else if(S.phase==='developing')developing();else ready();
+    var p=S.phase;
+    if(p==='home')home();else if(p==='setup')setup();
+    else if(p==='roll')roll();
+    else if(p==='pick')pick();else if(p==='developing')developing();
+    else if(p==='ready'){if(!S.design||!window.ZineEngine||!validDesign()){S.phase=S.photos.length?'pick':'roll';return render();}ready();}
+    else if(p==='custom'){if(!S.design||!window.ZineEngine){S.phase='ready';return render();}custom();}
+    else foldScreen();
     window.scrollTo(0,0);
   }
+  document.getElementById('logo').onclick=function(){
+    var work=S.photos.length||(S.start&&S.phase!=='home');
+    if(work&&!confirm('Start over? This clears your roll, photos and picks.'))return;
+    clearInterval(timer);wipe();S=fresh(S.paper);render();
+  };
   setInterval(function(){
     if(S.phase!=='roll')return;
-    var st=state();if(st!==lastState&&!S.busy){render();return;}
+    var st=state();
+    if(st!==(roll.last||st)&&!S.busy){roll.last=st;render();return;}
+    roll.last=st;
     var tl=document.getElementById('tl');
     if(tl&&st!=='closed')tl.textContent=left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining');
   },1000);
 
-  /* ---------- start up: restore a roll in progress, photos included ---------- */
+  /* ---------- start up: restore a roll in progress, photos and design included ---------- */
   var m=meta();
-  if(m&&m.start&&m.end&&(m.phase==='roll'||m.phase==='pick')){
+  if(m&&m.start&&m.end&&(m.phase==='roll'||m.phase==='pick'||m.phase==='ready')){
     idbAll().then(function(recs){
       recs.sort(function(a,b){return a.takenAt-b.takenAt;});
-      S.name=m.name;S.start=m.start;S.end=m.end;S.grace=m.grace||0;S.paper=m.paper||'A4';
+      S.name=m.name;S.start=m.start;S.end=m.end;S.grace=m.grace||0;S.paper=m.paper||'A4';S.design=m.design||null;
       S.photos=recs.map(function(r){return {id:r.id,url:URL.createObjectURL(r.blob),blob:r.blob,takenAt:r.takenAt,late:r.late};});
       S.sel=(m.sel||[]).filter(function(id){return byId(id);});
-      S.phase=(m.phase==='pick'&&S.photos.length)?'pick':'roll';
-      render();
+      S.phase=S.photos.length?(m.phase==='ready'&&S.design?'ready':m.phase==='pick'||m.phase==='ready'?'pick':'roll'):'roll';
+      if(S.phase==='ready'){
+        app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">Loading your zine...</h2>';
+        if(!validDesign()){S.phase='pick';render();return;}
+        prepareAssets().then(render).catch(function(){S.phase='pick';render();});
+      } else render();
     });
   } else render();
 })();

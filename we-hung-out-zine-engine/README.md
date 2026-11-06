@@ -20,45 +20,59 @@ vision model call -- see "The AI pipeline" below.
 
 ## Beta V1: the browser-only flow (what is live now)
 
-The app now makes the zine entirely **in the person's browser** -- no
-server, no database, no API key, no function time limit:
+Everything happens **in the person's browser** -- no server, no database,
+no API key, no function time limit. A fixed WHO logo (top left) restarts
+the whole thing (it asks first if there is work in progress); "made by
+Riann" sits at the bottom.
 
-1. Start a roll. Add photos. Each photo is shrunk to 1600px in the
-   browser on the way in (fast, small, and it fixes odd formats) and
-   kept on the device in IndexedDB, so a refresh doesn't lose them.
-2. When the roll closes (plus up to 5 late photos), **Pick your 8** --
-   tap in the order you want; page 1 is the cover. "Just pick 8 for me"
-   spreads 8 evenly across the night (no AI). Fewer than 8 picked? They
-   repeat to fill all 8 pages.
-3. The "developing" animation always plays all five stages, then the
-   PDF downloads: one sheet in the 8-panel single-cut fold (same fold
-   as Dirty Little Zine), with a dashed cut guide. A4 or US Letter.
+1. **Roll details** (name, day, start, end). Editable any time: Back from
+   the roll screen, or the small "Edit" link next to the time window.
+2. **Add photos.** Each is shrunk to 1600px in the browser and kept on the
+   device in IndexedDB. Capture time is read from EXIF (file date as a
+   fallback); only photos from the roll (plus up to 5 "final" photos from
+   the 30 minutes after) are kept. "Add them anyway (testing)" exists for
+   beta.
+3. **Pick your 8** (tap in order; page 1 is the cover; paper A4 / Letter).
+4. The five-stage **developing** animation always plays in full while the
+   engine, font and photos load.
+5. **Ready**: an on-screen preview of all 8 pages (painted by the same
+   layout code the PDF uses), then **Download as is** or **Customize**.
+6. **Customize**: per page -- photo or text page, fit (auto / fill / whole
+   photo), zoom, move left-right and up-down, caption, swap photo; cover
+   title and subtitle (text, size, 3x3 position, color, capitals); global
+   font (5 choices), photo border, caption and text-page size.
+7. **How to fold it**: six illustrated steps.
 
-`src/browser/entry.js` is bundled by esbuild into `web/zine-engine.js`
-(`npm run build:web`) from the same `src/render` + `src/layout` code the
-Node demos use -- **re-run it whenever anything under `src/` changes**,
-or the live site keeps the old engine.
+### Layout and fold
+`src/zine/imposition.js` now matches a real Dirty Little Zine export:
+bottom row = pages 8, 1, 2, 3; top row = 7, 6, 5, 4 printed upside down.
+**An earlier version used a different arrangement taken from a blog post,
+which would have put the cover in the wrong place after folding -- any
+sheet printed before this change should be reprinted.** The look follows
+that export too: photos run the full width of the panel and sit centered
+with the caption in the gap, the cover is full-bleed with the title over
+it, and any page can be a solid-color text page (default back page:
+"Fin.").
 
-Parked, not deleted: the Supabase tables and `api/develop.js` (the AI
-selection + 3 style variants flow) still exist but the page doesn't call
-them. Note Supabase's free tier pauses a project after a stretch of
-inactivity, which is what broke the earlier connected version.
+`src/render/v1.js` holds `layoutPage`, ONE pure function that turns a page
+spec into drawing operations. The PDF writer and the canvas preview in
+`web/index.html` both run those same operations. `src/browser/entry.js` is
+bundled by esbuild into `web/zine-engine.js` (`npm run build:web`) --
+**re-run it whenever anything under `src/` changes**, or the live site
+keeps the old engine. The page loads that 1.3 MB bundle lazily.
 
-Photos on panels that print upside down are rotated with the panel
-(fixed in `PanelContext._drawImage`; before this, only text rotated).
-Photos whose shape doesn't match the panel are shown whole instead of
-cropped (`fit: "auto"`).
+Fonts live in `web/fonts/` (Arvo, Bricolage Grotesque, Caveat, Playfair
+Display Italic, Special Elite; all open-licensed Google Fonts). They are
+embedded whole, without subsetting and with contextual letter features
+off, because pdf-lib dropped or misplaced glyphs otherwise.
 
-**Roll-window filter.** Each added photo's capture time is read from its
-EXIF `DateTimeOriginal` (falling back to the file's own date for PNG/HEIC
-or when EXIF is missing). A photo is kept if it was taken during the roll
-(2 min of slack), or in the 30 minutes after it ended -- those count as
-"final photos", max 5. Everything else is left out with a notice and an
-"Add them anyway (testing)" link for beta. Photos taken during the roll
-can be added any time before developing, even after it closes. The setup
-screen now has a date picker so a roll can be for any night. Unverified:
-how reliably phone browsers keep EXIF dates when a photo is picked; test
-with real photos on a real phone.
+Unverified: the fold steps are written from the standard single-cut
+method, matched to the dashed cut line on the sheet. Test one real
+printout. Downloads were only tested in desktop Chrome, not on phones.
+
+Parked, not deleted: the Supabase tables and `api/develop.js` (AI
+selection + 3 style variants). Supabase's free tier pauses a project
+after a stretch of inactivity, which broke the earlier connected version.
 
 ## Run it
 

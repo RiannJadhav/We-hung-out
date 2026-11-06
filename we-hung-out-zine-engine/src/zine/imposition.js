@@ -6,32 +6,34 @@
 // the two middle panels, then accordion-fold it into a little book. No
 // glue or staples.
 //
-// The panel <-> page-number mapping below is the standard layout used
-// across zine-making guides for this fold (e.g. the widely-reproduced
-// grid-template-areas version: top row = pages 5,4,3,2 upside down; bottom
-// row = pages 6,7,8,1 right-side up, with page 1 as the front cover and
-// page 8 as the back cover). Getting this mapping right is the whole point
-// of this module -- if you change it, refold a test print before trusting it.
+// The panel <-> page-number mapping below matches a real exported sheet
+// from dirtylittlezine.com (checked against a sample PDF): bottom row =
+// back cover (8), front cover (1), pages 2 and 3; top row = pages 7, 6, 5,
+// 4, printed upside down. Panels form a ring around the sheet, so pages
+// run 8,1,2,3 along the bottom then 4,5,6,7 back along the top. An earlier
+// version of this file used a different arrangement from a blog post,
+// which would have put the cover in the wrong place after folding. If you
+// change this mapping, refold a test print before trusting it.
 //
 // Grid (as it looks printed on the sheet, before folding):
 //
 //   col:        1        2        3        4
-//   row 1:   page 5   page 4   page 3   page 2      <- each rotated 180°
-//   row 2:   page 6   page 7   page 8   page 1      <- right-side up
+//   row 1:   page 7   page 6   page 5   page 4      <- each rotated 180°
+//   row 2:   page 8   page 1   page 2   page 3      <- right-side up
 
 import { getLandscapeSheetSize, PanelContext } from "../render/geometry.js";
 
 const GRID = [
-  // row 1 (top), rotated 180
-  { page: 5, col: 0, row: 1, rotationDeg: 180 },
-  { page: 4, col: 1, row: 1, rotationDeg: 180 },
-  { page: 3, col: 2, row: 1, rotationDeg: 180 },
-  { page: 2, col: 3, row: 1, rotationDeg: 180 },
-  // row 2 (bottom), upright
-  { page: 6, col: 0, row: 0, rotationDeg: 0 },
-  { page: 7, col: 1, row: 0, rotationDeg: 0 },
-  { page: 8, col: 2, row: 0, rotationDeg: 0 },
-  { page: 1, col: 3, row: 0, rotationDeg: 0 },
+  // row 1 (top), rotated 180: pages 7, 6, 5, 4 left to right
+  { page: 7, col: 0, row: 1, rotationDeg: 180 },
+  { page: 6, col: 1, row: 1, rotationDeg: 180 },
+  { page: 5, col: 2, row: 1, rotationDeg: 180 },
+  { page: 4, col: 3, row: 1, rotationDeg: 180 },
+  // row 2 (bottom), upright: back cover, front cover, then pages 2 and 3
+  { page: 8, col: 0, row: 0, rotationDeg: 0 },
+  { page: 1, col: 1, row: 0, rotationDeg: 0 },
+  { page: 2, col: 2, row: 0, rotationDeg: 0 },
+  { page: 3, col: 3, row: 0, rotationDeg: 0 },
 ];
 
 /**

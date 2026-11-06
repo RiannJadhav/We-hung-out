@@ -140,6 +140,12 @@ export class PanelContext {
     }
   }
 
+  // Draws an image at an exact local rect (callers do their own fitting,
+  // panning and zooming; wrap in beginClip/endClip to crop to a box).
+  drawImageAt(image, lx, ly, w, h) {
+    this._drawImage(image, this._transformRect(lx, ly, w, h));
+  }
+
   // Draws an embedded pdf-lib image "cover-fit" into a local rect, cropping
   // (via clip) rather than distorting the aspect ratio.
   drawImageCover(image, lx, ly, w, h) {
