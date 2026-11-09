@@ -20,6 +20,15 @@ vision model call -- see "The AI pipeline" below.
 
 ## Beta V1: the browser-only flow (what is live now)
 
+**Two modes.** The home screen has two doors that share one editor and
+one PDF maker: **Start a roll** (the time-boxed ritual, with the capture-
+time filter below) and **Make a zine now** (any photos, any day, no
+timestamps, up to 40 photos, a remove button on each). Quick mode has no
+setup screen; its cover subtitle defaults to today's date. Paper sizes are
+A4, A3 and US Letter; photos are shrunk to 2000px on the long edge, enough
+for roughly 300 dpi on A4 panels. Not built yet: drag-to-reorder and a
+separate reading-order PDF.
+
 Everything happens **in the person's browser** -- no server, no database,
 no API key, no function time limit. A fixed WHO logo (top left) restarts
 the whole thing (it asks first if there is work in progress); "made by

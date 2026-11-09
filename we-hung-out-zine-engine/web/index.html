@@ -139,11 +139,11 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
 <script>
 (function(){
   var app=document.getElementById('app');
-  var MAX_GRACE=5, MAX_PX=1600, STAGE_MS=2200, SLACK=120000, LATE_MS=30*60000;
+  var MAX_GRACE=5, MAX_PX=2000, QUICK_MAX=40, STAGE_MS=2200, SLACK=120000, LATE_MS=30*60000;
   var STAGES=["Finding your photos...","Removing duplicates...","Finding the best moments...","Building your story...","Composing your zine..."];
   var FONTS=[['slab','Slab'],['bold','Bold'],['hand','Hand'],['serif','Serif'],['type','Type']];
   var COLORS={ink:'#1a1a1a',white:'#ffffff',yellow:'#ffd93b',blue:'#2b3bff',blush:'#ff8fb1'};
-  function fresh(paper){return {phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:paper||'A4',busy:0,err:null,stage:0,seen:{},rejected:[],editing:false,design:null,idx:0,back:'ready',dlUrl:null,dlBusy:false};}
+  function fresh(paper){return {mode:'roll',phase:'home',name:'Tonight',start:0,end:0,photos:[],grace:0,sel:[],paper:paper||'A4',busy:0,err:null,stage:0,seen:{},rejected:[],editing:false,design:null,idx:0,back:'ready',dlUrl:null,dlBusy:false};}
   var S=fresh();
   var timer=null;
 
@@ -159,12 +159,12 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
 
   /* ---------- storage: roll details + design in localStorage, photos in IndexedDB (this device only) ---------- */
   function save(){
-    if(!S.start)return;
-    var ph=S.phase;
+    if(!S.start&&S.mode!=='quick')return;
+    var base=S.mode==='quick'?'quick':'roll',ph=S.phase;
     if(ph==='developing')ph='pick';
-    else if(ph==='custom'||ph==='fold')ph=S.design?'ready':'roll';
-    else if(ph==='setup'||ph==='home')ph='roll';
-    try{localStorage.setItem('whoRoll3',JSON.stringify({phase:ph,name:S.name,start:S.start,end:S.end,grace:S.grace,sel:S.sel,paper:S.paper,design:S.design}));}catch(e){}
+    else if(ph==='custom'||ph==='fold')ph=S.design?'ready':base;
+    else if(ph==='setup'||ph==='home'||ph==='roll'||ph==='quick')ph=base;
+    try{localStorage.setItem('whoRoll3',JSON.stringify({mode:S.mode,phase:ph,name:S.name,start:S.start,end:S.end,grace:S.grace,sel:S.sel,paper:S.paper,design:S.design}));}catch(e){}
   }
   function meta(){try{return JSON.parse(localStorage.getItem('whoRoll3')||'null');}catch(e){return null;}}
   function wipe(){try{localStorage.removeItem('whoRoll3');}catch(e){} idbClear();}
@@ -181,6 +181,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
   }
   function idbPut(rec){return db().then(function(d){return new Promise(function(res,rej){var t=d.transaction('photos','readwrite');t.objectStore('photos').put(rec);t.oncomplete=res;t.onerror=function(){rej(t.error);};});}).catch(function(){});}
   function idbAll(){return db().then(function(d){return new Promise(function(res,rej){var q=d.transaction('photos').objectStore('photos').getAll();q.onsuccess=function(){res(q.result||[]);};q.onerror=function(){rej(q.error);};});}).catch(function(){return [];});}
+  function idbDel(id){return db().then(function(d){return new Promise(function(res){var t=d.transaction('photos','readwrite');t.objectStore('photos').delete(id);t.oncomplete=res;t.onerror=res;});}).catch(function(){});}
   function idbClear(){return db().then(function(d){return new Promise(function(res){var t=d.transaction('photos','readwrite');t.objectStore('photos').clear();t.oncomplete=res;t.onerror=res;});}).catch(function(){});}
 
   /* ---------- small helpers ---------- */
@@ -271,8 +272,11 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
   function home(){
     app.innerHTML='<div class="brand">we hung out</div><h1 class="big">Turn your night into a zine.</h1>'+
     '<p>Start a roll. Take photos like normal. When it ends, we develop your night into something you can hold.</p>'+
-    '<div class="spacer"></div><button class="btn shutter" id="go">START A ROLL</button><div class="spacer"></div>';
-    document.getElementById('go').onclick=function(){S.editing=false;S.phase='setup';render();};
+    '<div class="spacer"></div><button class="btn shutter" id="go" style="width:min(58vw,230px);font-size:25px">START A ROLL</button>'+
+    '<div style="height:22px"></div><button class="btn alt" id="quick" style="align-self:center">Make a zine now</button>'+
+    '<p class="tiny" style="text-align:center;max-width:none">Any photos, any time. No roll needed.</p><div class="spacer"></div>';
+    document.getElementById('go').onclick=function(){S.mode='roll';S.editing=false;S.phase='setup';render();};
+    document.getElementById('quick').onclick=function(){S.mode='quick';S.name='My zine';S.photos=[];S.seen={};S.sel=[];S.design=null;S.err=null;S.rejected=[];S.start=0;S.end=0;idbClear();S.phase='quick';save();render();};
   }
 
   function setup(){
@@ -350,6 +354,45 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     el.scrollLeft=el.scrollWidth;
   }
 
+  function quick(){
+    loadEngine().catch(function(){});
+    var n=S.photos.length;
+    var html='<div class="brand">quick zine</div><h2 class="mid">Make a zine</h2>'+
+      '<label for="nm">Name your zine</label><input type="text" id="nm" maxlength="28" value="'+esc(S.name)+'">'+
+      '<p class="tiny" style="margin-top:10px">Add any photos from any day. Up to '+QUICK_MAX+'.</p>';
+    if(n){
+      html+='<div class="grid">'+S.photos.map(function(p){return '<div class="cell" style="cursor:default"><img alt="" src="'+p.url+'"><button class="badge" data-rm="'+p.id+'" aria-label="Remove photo" style="border:0;cursor:pointer">\u00d7</button></div>';}).join('')+'</div>';
+    }
+    if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
+    html+='<div class="spacer"></div><input type="file" id="file" accept="image/*" multiple>'+
+      '<div style="height:14px"></div><button class="btn alt" id="add"'+(S.busy||n>=QUICK_MAX?' disabled':'')+'>'+(S.busy?'Adding... '+S.busy+' left':n?'Add more photos ('+n+')':'Add photos')+'</button>'+
+      '<p class="tiny" style="text-align:center">Photos stay on this device.</p>'+
+      navBar('Back','Pick your 8',!n||!!S.busy);
+    app.innerHTML=html;
+    var file=document.getElementById('file');
+    document.getElementById('add').onclick=function(){file.click();};
+    file.onchange=function(){addFiles(file.files,true);file.value='';};
+    var nm=document.getElementById('nm');
+    nm.oninput=function(){
+      var old=S.name;S.name=nm.value.trim()||'My zine';
+      if(S.design&&S.design.title&&S.design.title.text===old)S.design.title.text=S.name;
+      save();
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-rm]'),function(b){
+      b.onclick=function(){
+        var id=b.getAttribute('data-rm');
+        S.photos=S.photos.filter(function(p){return p.id!==id;});
+        S.sel=S.sel.filter(function(x){return x!==id;});S.design=null;
+        idbDel(id);save();keepScroll(quick);
+      };
+    });
+    document.getElementById('nb').onclick=function(){
+      if(S.photos.length&&!confirm('Go back? Your photos for this zine will be cleared.'))return;
+      wipe();S=fresh(S.paper);render();
+    };
+    document.getElementById('nn').onclick=function(){S.phase='pick';S.err=null;save();render();};
+  }
+
   function addFiles(list,force){
     var fresh2=[];
     Array.prototype.slice.call(list).forEach(function(f){
@@ -363,11 +406,15 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
       fresh2.sort(function(a,b){return a.t-b.t;});
       var todo=[],room=MAX_GRACE-S.grace;
       fresh2.forEach(function(it){
-        var c=force?'in':classify(it.t);
+        var c=(force||S.mode==='quick')?'in':classify(it.t);
         if(c==='out'){it.why='out';S.rejected.push(it);}
         else if(c==='late'){if(room>0){room--;it.late=true;S.seen[it.k]=1;todo.push(it);}else{it.why='cap';S.rejected.push(it);}}
         else{S.seen[it.k]=1;todo.push(it);}
       });
+      if(S.mode==='quick'){
+        var roomQ=Math.max(0,QUICK_MAX-S.photos.length);
+        if(todo.length>roomQ){todo.slice(roomQ).forEach(function(it){delete S.seen[it.k];});todo=todo.slice(0,roomQ);S.err='Up to '+QUICK_MAX+' photos per zine, so some were left out.';}
+      }
       S.busy=todo.length;
       var failed=0;
       return todo.reduce(function(chain,item){
@@ -379,13 +426,13 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
               if(item.late)S.grace++;
             });
           }).catch(function(){failed++;});
-        }).then(function(){S.busy--;save();if(S.phase==='roll')render();});
+        }).then(function(){S.busy--;save();if(S.phase==='roll'||S.phase==='quick')render();});
       },Promise.resolve()).then(function(){return failed;});
     }).catch(function(){return 1;}).then(function(failed){
       S.busy=0;
       S.photos.sort(function(a,b){return a.takenAt-b.takenAt;});
       if(failed)S.err=failed+' photo'+(failed>1?'s':'')+' couldn\u2019t be read (try a JPEG or PNG).';
-      save();if(S.phase==='roll')render();
+      save();if(S.phase==='roll'||S.phase==='quick')render();
     });
   }
 
@@ -400,7 +447,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     });
     html+='</div>';
     if(S.photos.length>8)html+='<button class="link" id="auto">Just pick 8 for me</button>';
-    html+='<label>Paper</label><div class="seg"><button data-p="A4" class="'+(S.paper==='A4'?'sel':'')+'">A4</button><button data-p="LETTER" class="'+(S.paper==='LETTER'?'sel':'')+'">US Letter</button></div>';
+    html+='<label>Paper</label><div class="seg"><button data-p="A4" class="'+(S.paper==='A4'?'sel':'')+'">A4</button><button data-p="A3" class="'+(S.paper==='A3'?'sel':'')+'">A3</button><button data-p="LETTER" class="'+(S.paper==='LETTER'?'sel':'')+'">US Letter</button></div>';
     if(n>0&&n<8)html+='<p class="tiny">With '+n+' photo'+(n>1?'s':'')+' picked, we\u2019ll repeat them to fill the pages and finish with a "Fin." page. You can change all of that next.</p>';
     if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
     html+=navBar('Back','Develop my zine ('+n+'/8)',!n,true);
@@ -419,7 +466,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
       S.sel=out;S.design=null;save();pick();
     };
     Array.prototype.forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){S.paper=b.getAttribute('data-p');save();keepScroll(pick);};});
-    document.getElementById('nb').onclick=function(){S.phase='roll';render();};
+    document.getElementById('nb').onclick=function(){S.phase=S.mode==='quick'?'quick':'roll';render();};
     document.getElementById('nn').onclick=develop;
   }
 
@@ -431,7 +478,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
       else pages.push({kind:'text',text:'Fin.',bg:'ink'});
     }
     return {frame:'none',font:'slab',capSize:10,textSize:56,textBg:'ink',
-      title:{show:true,text:S.name,sub:fmtDate(S.start),size:24,subSize:12,pos:'bc',color:'auto',upper:true},pages:pages};
+      title:{show:true,text:S.name,sub:fmtDate(S.start||Date.now()),size:24,subSize:12,pos:'bc',color:'auto',upper:true},pages:pages};
   }
   function validDesign(){
     var d=S.design;if(!d||!d.pages||d.pages.length!==8)return false;
@@ -532,12 +579,12 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h1 class="mid" style="font-weight:800;letter-spacing:-.035em;line-height:.92;margin:0">Your zine is ready.</h1>'+
       '<p>Here are your 8 pages. Download it as it is, or tap a page to adjust it.</p>'+
       '<div class="pvgrid">'+cells+'</div>'+
-      '<label>Paper</label><div class="seg"><button data-p="A4" class="'+(S.paper==='A4'?'sel':'')+'">A4</button><button data-p="LETTER" class="'+(S.paper==='LETTER'?'sel':'')+'">US Letter</button></div>'+
+      '<label>Paper</label><div class="seg"><button data-p="A4" class="'+(S.paper==='A4'?'sel':'')+'">A4</button><button data-p="A3" class="'+(S.paper==='A3'?'sel':'')+'">A3</button><button data-p="LETTER" class="'+(S.paper==='LETTER'?'sel':'')+'">US Letter</button></div>'+
       '<div style="height:16px"></div><button class="btn" id="dl" style="width:100%">Download as is (PDF)</button>'+
       '<div style="height:12px"></div><button class="btn alt" id="cu" style="width:100%">Customize</button>'+
       '<p class="msg" id="dlmsg"></p>'+
       '<div style="text-align:center"><button class="link" id="fold">How to fold it</button></div>'+
-      '<p class="tiny" style="text-align:center">Print single-sided on one sheet, landscape, at 100% size (no "fit to page").</p>'+
+      '<p class="tiny" style="text-align:center">Print single-sided on one sheet, landscape, at 100% size (no "fit to page"). A3 is best printed at a print shop.</p>'+
       navBar('Back',null,false);
     document.getElementById('nb').onclick=function(){S.phase='pick';render();};
     Array.prototype.forEach.call(document.querySelectorAll('.pvc'),function(b){b.onclick=function(){S.idx=+b.getAttribute('data-go');S.phase='custom';render();};});
@@ -682,15 +729,15 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
   function render(){
     var p=S.phase;
     if(p==='home')home();else if(p==='setup')setup();
-    else if(p==='roll')roll();
+    else if(p==='roll')roll();else if(p==='quick')quick();
     else if(p==='pick')pick();else if(p==='developing')developing();
-    else if(p==='ready'){if(!S.design||!window.ZineEngine||!validDesign()){S.phase=S.photos.length?'pick':'roll';return render();}ready();}
+    else if(p==='ready'){if(!S.design||!window.ZineEngine||!validDesign()){S.phase=S.photos.length?'pick':(S.mode==='quick'?'quick':'roll');return render();}ready();}
     else if(p==='custom'){if(!S.design||!window.ZineEngine){S.phase='ready';return render();}custom();}
     else foldScreen();
     window.scrollTo(0,0);
   }
   document.getElementById('logo').onclick=function(){
-    var work=S.photos.length||(S.start&&S.phase!=='home');
+    var work=S.photos.length>0||(S.mode==='roll'&&S.start&&S.phase!=='home');
     if(work&&!confirm('Start over? This clears your roll, photos and picks.'))return;
     clearInterval(timer);wipe();S=fresh(S.paper);render();
   };
@@ -705,13 +752,14 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
 
   /* ---------- start up: restore a roll in progress, photos and design included ---------- */
   var m=meta();
-  if(m&&m.start&&m.end&&(m.phase==='roll'||m.phase==='pick'||m.phase==='ready')){
+  if(m&&((m.start&&m.end)||m.mode==='quick')&&(m.phase==='roll'||m.phase==='quick'||m.phase==='pick'||m.phase==='ready')){
     idbAll().then(function(recs){
       recs.sort(function(a,b){return a.takenAt-b.takenAt;});
-      S.name=m.name;S.start=m.start;S.end=m.end;S.grace=m.grace||0;S.paper=m.paper||'A4';S.design=m.design||null;
+      S.mode=m.mode||'roll';S.name=m.name;S.start=m.start||0;S.end=m.end||0;S.grace=m.grace||0;S.paper=m.paper||'A4';S.design=m.design||null;
       S.photos=recs.map(function(r){return {id:r.id,url:URL.createObjectURL(r.blob),blob:r.blob,takenAt:r.takenAt,late:r.late};});
       S.sel=(m.sel||[]).filter(function(id){return byId(id);});
-      S.phase=S.photos.length?(m.phase==='ready'&&S.design?'ready':m.phase==='pick'||m.phase==='ready'?'pick':'roll'):'roll';
+      var base=S.mode==='quick'?'quick':'roll';
+      S.phase=S.photos.length?(m.phase==='ready'&&S.design?'ready':m.phase==='pick'||m.phase==='ready'?'pick':base):base;
       if(S.phase==='ready'){
         app.innerHTML='<div class="brand">'+esc(S.name)+'</div><h2 class="mid">Loading your zine...</h2>';
         if(!validDesign()){S.phase='pick';render();return;}

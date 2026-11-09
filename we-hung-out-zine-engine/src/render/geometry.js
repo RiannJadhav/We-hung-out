@@ -11,6 +11,7 @@ export const IN_TO_PT = 72;
 // (portrait mm/in dims are the well-known standard sizes; we flip w/h for
 // landscape since the zine imposition sheet is always landscape.)
 export const PAPER_SIZES = {
+  A3: { portraitWidth: 297 * MM_TO_PT, portraitHeight: 420 * MM_TO_PT },
   A4: { portraitWidth: 210 * MM_TO_PT, portraitHeight: 297 * MM_TO_PT },
   LETTER: { portraitWidth: 8.5 * IN_TO_PT, portraitHeight: 11 * IN_TO_PT },
 };
