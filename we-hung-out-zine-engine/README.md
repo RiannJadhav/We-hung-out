@@ -29,6 +29,32 @@ A4, A3 and US Letter; photos are shrunk to 2000px on the long edge, enough
 for roughly 300 dpi on A4 panels. Not built yet: drag-to-reorder and a
 separate reading-order PDF.
 
+**Installable app + APK (PWA).** `web/manifest.webmanifest`, `web/sw.js`
+(network-first, so a new deploy shows up immediately, including inside an
+installed app) and `web/icons/` make the site installable: Android Chrome
+offers "Install app" and iPhone Safari has Share > Add to Home Screen.
+For an Android APK: deploy, then use pwabuilder.com with the live URL to
+package it (a Trusted Web Activity). The APK just opens the website, so
+every later website change appears in it automatically; only the APK shell
+(icon, name, package id) needs rebuilding. To hide the browser bar, host
+the generated `assetlinks.json` at `web/.well-known/assetlinks.json`, and
+keep the signing key PWABuilder gives you somewhere safe. Icon source: a
+yellow shutter circle with "WHO" on the app's blue (`icons/maskable-512.png`
+keeps everything inside Android's circular safe zone).
+
+**Find my night.** On "Start a roll > Find my night" the person picks a
+batch of photos; capture times are read (EXIF, file date as a fallback),
+split into sessions at gaps over 2 hours, and the app proposes the biggest
+nights. Only the chosen night's photos are resized and kept. Photos are
+resized three at a time with live progress, so thumbnails appear as they
+finish.
+
+**Static pages.** `web/about.html` is a plain-text overview with
+screenshots (`web/shots/`) for people and AI tools that cannot run the app;
+`web/privacy.html` is the privacy page. Fonts are self-hosted WOFF2
+(`web/fonts/`), so the site makes no third-party requests. Retake
+`web/shots/` when the screens change.
+
 Everything happens **in the person's browser** -- no server, no database,
 no API key, no function time limit. A fixed WHO logo (top left) restarts
 the whole thing (it asks first if there is work in progress); "made by

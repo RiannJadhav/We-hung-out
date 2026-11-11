@@ -6,10 +6,24 @@
 <meta name="theme-color" content="#2b3bff">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>We hung out</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<meta name="description" content="We hung out turns a night of photos into a printable, foldable 8-page zine. Your photos never leave your device.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WHO">
+<meta property="og:title" content="We hung out">
+<meta property="og:description" content="Turn your night into a printable, foldable zine. Your photos never leave your device.">
+<meta property="og:image" content="og.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/bricolage-800.woff2">
 <style>
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/bricolage-500.woff2) format("woff2")}
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:800;font-display:swap;src:url(fonts/bricolage-800.woff2) format("woff2")}
+@font-face{font-family:"Caveat";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/caveat-600.woff2) format("woff2")}
 :root{
   --flash-blue:#2b3bff; --flash-yellow:#ffd93b; --print-white:#fbfaf6;
   --ink:#14142b; --blush:#ff8fb1;
@@ -128,18 +142,33 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
 .fold svg{flex:none;width:128px;height:auto}
 .fold b{font-family:var(--hand);font-size:24px;color:var(--flash-blue);display:block;line-height:1}
 .fold p{margin:4px 0 0;font-size:16px;line-height:1.3}
+.prog{height:8px;border-radius:6px;background:rgba(255,255,255,.25);overflow:hidden;margin-top:12px}.prog i{display:block;height:100%;background:var(--flash-yellow);width:0;transition:width .25s}
+.opt{display:block;width:100%;text-align:left;font:inherit;border:0;border-radius:20px;padding:20px 22px;margin-top:16px;cursor:pointer;box-shadow:0 6px 0 var(--ink);color:var(--ink);transition:transform .08s,box-shadow .08s}
+.opt:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+.opt b{display:block;font-weight:800;font-size:26px;letter-spacing:-.025em;line-height:1}
+.opt span{display:block;margin-top:6px;font-size:16px;line-height:1.3}
+.opt.y{background:var(--flash-yellow)}.opt.w{background:var(--print-white)}
+.night{display:block;width:100%;text-align:left;font:inherit;background:var(--print-white);color:var(--ink);border:0;border-radius:18px;padding:16px 18px;margin-top:14px;cursor:pointer;box-shadow:0 5px 0 var(--ink)}
+.night b{display:block;font-weight:800;font-size:22px;letter-spacing:-.02em}
+.night span{display:block;font-size:16px;margin-top:2px}
+.night em{font-style:normal;font-family:var(--hand);font-size:22px;color:var(--flash-blue)}
+.credit a{color:inherit}
 .msg{min-height:22px;text-align:center;font-size:15px;margin:10px 0 0}
 .msg a{color:var(--flash-yellow)}
 </style>
 </head>
 <body>
 <header class="top"><button class="logo" id="logo" aria-label="We hung out - start over">WHO</button></header>
-<main id="app" aria-live="polite"></main>
-<footer class="credit">made by Riann</footer>
+<main id="app" aria-live="polite">
+<div class="brand">we hung out</div><h1 class="big">Turn your night into a zine.</h1>
+<p>Start a roll. Take photos like normal. When it ends, we develop your night into something you can hold.</p>
+<p><a href="about.html" style="color:inherit">Read the overview</a> &middot; <a href="privacy.html" style="color:inherit">Privacy</a></p>
+</main>
+<footer class="credit">made by Riann &middot; <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> &middot; <a href="about.html" target="_blank" rel="noopener">About</a></footer>
 <script>
 (function(){
   var app=document.getElementById('app');
-  var MAX_GRACE=5, MAX_PX=2000, QUICK_MAX=40, STAGE_MS=2200, SLACK=120000, LATE_MS=30*60000;
+  var MAX_GRACE=5, MAX_PX=2000, QUICK_MAX=40, CONC=3, GAP=2*3600000, STAGE_MS=2200, SLACK=120000, LATE_MS=30*60000;
   var STAGES=["Finding your photos...","Removing duplicates...","Finding the best moments...","Building your story...","Composing your zine..."];
   var FONTS=[['slab','Slab'],['bold','Bold'],['hand','Hand'],['serif','Serif'],['type','Type']];
   var COLORS={ink:'#1a1a1a',white:'#ffffff',yellow:'#ffd93b',blue:'#2b3bff',blush:'#ff8fb1'};
@@ -275,7 +304,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     '<div class="spacer"></div><button class="btn shutter" id="go" style="width:min(58vw,230px);font-size:25px">START A ROLL</button>'+
     '<div style="height:22px"></div><button class="btn alt" id="quick" style="align-self:center">Make a zine now</button>'+
     '<p class="tiny" style="text-align:center;max-width:none">Any photos, any time. No roll needed.</p><div class="spacer"></div>';
-    document.getElementById('go').onclick=function(){S.mode='roll';S.editing=false;S.phase='setup';render();};
+    document.getElementById('go').onclick=function(){S.mode='roll';S.editing=false;S.phase='start';render();};
     document.getElementById('quick').onclick=function(){S.mode='quick';S.name='My zine';S.photos=[];S.seen={};S.sel=[];S.design=null;S.err=null;S.rejected=[];S.start=0;S.end=0;idbClear();S.phase='quick';save();render();};
   }
 
@@ -290,7 +319,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     '<div><label for="en">Ends</label><input type="time" id="en" value="'+hhmm(en)+'"></div></div>'+
     '<p class="tiny">Only photos taken between these two times are kept.</p><div class="spacer"></div>'+
     navBar(ed?'Back':'Back',ed?'Save':'Start roll');
-    document.getElementById('nb').onclick=function(){S.phase=ed?'roll':'home';render();};
+    document.getElementById('nb').onclick=function(){S.phase=ed?'roll':'start';render();};
     document.getElementById('nn').onclick=function(){
       var dv=(document.getElementById('dt').value||ymd(new Date())).split('-');
       var t=function(id){var v=document.getElementById(id).value.split(':');return new Date(+dv[0],+dv[1]-1,+dv[2],+v[0],+v[1],0,0).getTime();};
@@ -322,7 +351,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
       '<div class="counter"><small>Photos captured</small><div class="num">'+S.photos.length+'</div>'+
       (closed?'<div class="time" id="tl">'+left5+' final photo'+(left5===1?'':'s')+' left</div>'
         :'<div class="time" id="tl">'+left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining')+'</div>')+'</div>'+
-      '<div class="strip" id="strip"></div>'+noticeHtml();
+      '<div class="strip" id="strip"></div>'+noticeHtml()+progHtml();
     if(closed)html+='<p class="note">Your roll is closed. You can still add photos taken during it, plus up to '+MAX_GRACE+' final ones from the 30 minutes after.</p>';
     if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
     html+='<div class="spacer"></div><input type="file" id="file" accept="image/*" multiple>';
@@ -363,6 +392,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     if(n){
       html+='<div class="grid">'+S.photos.map(function(p){return '<div class="cell" style="cursor:default"><img alt="" src="'+p.url+'"><button class="badge" data-rm="'+p.id+'" aria-label="Remove photo" style="border:0;cursor:pointer">\u00d7</button></div>';}).join('')+'</div>';
     }
+    html+=progHtml();
     if(S.err)html+='<p class="err">'+esc(S.err)+'</p>';
     html+='<div class="spacer"></div><input type="file" id="file" accept="image/*" multiple>'+
       '<div style="height:14px"></div><button class="btn alt" id="add"'+(S.busy||n>=QUICK_MAX?' disabled':'')+'>'+(S.busy?'Adding... '+S.busy+' left':n?'Add more photos ('+n+')':'Add photos')+'</button>'+
@@ -393,47 +423,156 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     document.getElementById('nn').onclick=function(){S.phase='pick';S.err=null;save();render();};
   }
 
+  /* ---------- faster photo handling: a few at once, visible progress, photos appear as they finish ---------- */
+  var rt=null;
+  function scheduleRender(){
+    if(rt)return;
+    rt=setTimeout(function(){rt=null;if(['roll','quick','find'].indexOf(S.phase)>-1)keepScroll(render);},200);
+  }
+  function pool(list,limit,worker,onTick){
+    return new Promise(function(resolve){
+      var i=0,running=0,done=0,n=list.length;
+      if(!n){resolve();return;}
+      function next(){
+        while(running<limit&&i<n){
+          (function(item){
+            running++;
+            Promise.resolve().then(function(){return worker(item);}).catch(function(){}).then(function(){
+              running--;done++;if(onTick)onTick(done,n);
+              if(done===n)resolve();else next();
+            });
+          })(list[i++]);
+        }
+      }
+      next();
+    });
+  }
+  function progHtml(){
+    if(!S.busy||!S.prep)return '';
+    var d=S.prep.done,t=S.prep.total,pct=t?Math.round(100*d/t):0;
+    return '<p class="tiny" style="margin-top:14px">'+(S.prep.reading?'Reading photo dates... '+d+' of '+t:'Preparing your photos... '+d+' of '+t)+'</p>'+
+      '<div class="prog"><i style="width:'+pct+'%"></i></div><p class="tiny">iPhones can take a moment to hand over big batches of photos.</p>';
+  }
+  function ingest(items){
+    var failed=0;
+    S.busy=items.length;S.prep={done:0,total:items.length};
+    return pool(items,CONC,function(it){
+      var tp=it.t!=null?Promise.resolve(it.t):readTaken(it.f);
+      return tp.then(function(t){
+        return shrink(it.f).then(function(blob){
+          var rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),blob:blob,takenAt:t,late:!!it.late};
+          return idbPut(rec).then(function(){
+            S.photos.push({id:rec.id,url:URL.createObjectURL(blob),blob:blob,takenAt:rec.takenAt,late:rec.late});
+            if(it.late)S.grace++;
+          });
+        });
+      }).catch(function(){failed++;});
+    },function(d,n){S.busy=n-d;S.prep.done=d;scheduleRender();}).then(function(){return failed;});
+  }
+  function finish(failed){
+    S.busy=0;S.prep=null;
+    S.photos.sort(function(a,b){return a.takenAt-b.takenAt;});
+    if(failed)S.err=failed+' photo'+(failed>1?'s':'')+' couldn\u2019t be read (try a JPEG or PNG).';
+    save();
+    if(['roll','quick'].indexOf(S.phase)>-1)keepScroll(render);
+  }
   function addFiles(list,force){
-    var fresh2=[];
+    var items=[];
     Array.prototype.slice.call(list).forEach(function(f){
       var k=f.name+'|'+f.size+'|'+f.lastModified;
       if(S.seen[k])return;
-      fresh2.push({f:f,k:k});
+      items.push({f:f,k:k});
     });
-    if(!fresh2.length)return;
-    S.busy=fresh2.length;S.err=null;S.rejected=[];render();
-    Promise.all(fresh2.map(function(it){return readTaken(it.f).then(function(t){it.t=t;});})).then(function(){
-      fresh2.sort(function(a,b){return a.t-b.t;});
-      var todo=[],room=MAX_GRACE-S.grace;
-      fresh2.forEach(function(it){
-        var c=(force||S.mode==='quick')?'in':classify(it.t);
+    if(!items.length)return;
+    S.err=null;S.rejected=[];
+    if(S.mode==='quick'){
+      var room=Math.max(0,QUICK_MAX-S.photos.length);
+      if(items.length>room){items=items.slice(0,room);S.err='Up to '+QUICK_MAX+' photos per zine, so some were left out.';}
+      items.forEach(function(it){S.seen[it.k]=1;});
+      S.busy=items.length;S.prep={done:0,total:items.length};render();
+      ingest(items).then(finish);
+      return;
+    }
+    // Roll mode: read capture times first, so the "5 final photos" go to the earliest ones.
+    S.busy=items.length;S.prep={done:0,total:items.length,reading:true};render();
+    pool(items,6,function(it){return readTaken(it.f).then(function(t){it.t=t;});},function(d){S.prep.done=d;scheduleRender();}).then(function(){
+      items.sort(function(a,b){return a.t-b.t;});
+      var todo=[],roomL=MAX_GRACE-S.grace;
+      items.forEach(function(it){
+        var c=force?'in':classify(it.t);
         if(c==='out'){it.why='out';S.rejected.push(it);}
-        else if(c==='late'){if(room>0){room--;it.late=true;S.seen[it.k]=1;todo.push(it);}else{it.why='cap';S.rejected.push(it);}}
+        else if(c==='late'){if(roomL>0){roomL--;it.late=true;S.seen[it.k]=1;todo.push(it);}else{it.why='cap';S.rejected.push(it);}}
         else{S.seen[it.k]=1;todo.push(it);}
       });
-      if(S.mode==='quick'){
-        var roomQ=Math.max(0,QUICK_MAX-S.photos.length);
-        if(todo.length>roomQ){todo.slice(roomQ).forEach(function(it){delete S.seen[it.k];});todo=todo.slice(0,roomQ);S.err='Up to '+QUICK_MAX+' photos per zine, so some were left out.';}
-      }
-      S.busy=todo.length;
-      var failed=0;
-      return todo.reduce(function(chain,item){
-        return chain.then(function(){
-          return shrink(item.f).then(function(blob){
-            var rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),blob:blob,takenAt:item.t,late:!!item.late};
-            return idbPut(rec).then(function(){
-              S.photos.push({id:rec.id,url:URL.createObjectURL(blob),blob:blob,takenAt:rec.takenAt,late:rec.late});
-              if(item.late)S.grace++;
-            });
-          }).catch(function(){failed++;});
-        }).then(function(){S.busy--;save();if(S.phase==='roll'||S.phase==='quick')render();});
-      },Promise.resolve()).then(function(){return failed;});
-    }).catch(function(){return 1;}).then(function(failed){
-      S.busy=0;
-      S.photos.sort(function(a,b){return a.takenAt-b.takenAt;});
-      if(failed)S.err=failed+' photo'+(failed>1?'s':'')+' couldn\u2019t be read (try a JPEG or PNG).';
-      save();if(S.phase==='roll'||S.phase==='quick')render();
+      return ingest(todo);
+    }).catch(function(){return 1;}).then(finish);
+  }
+
+  /* ---------- start screen + "Find my night" ---------- */
+  var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  function nightName(first,last){
+    var mid=new Date((first+last)/2),h=mid.getHours();
+    var part=(h>=20||h<5)?'night':h<12?'morning':h<17?'afternoon':'evening';
+    return DAYS[new Date(first).getDay()]+' '+part;
+  }
+  function startScreen(){
+    app.innerHTML='<div class="brand">new roll</div><h2 class="mid">How do you want to start?</h2>'+
+      '<input type="file" id="ffile" accept="image/*" multiple>'+
+      '<button class="opt y" id="findnight"><b>Find my night</b><span>Pick photos from your gallery. We read their dates, find the night, and set the times for you.</span></button>'+
+      '<button class="opt w" id="manual"><b>Set the times myself</b><span>Start a roll now and add photos as the night goes.</span></button>'+
+      '<div class="spacer"></div>'+navBar('Back',null,false);
+    var ff=document.getElementById('ffile');
+    document.getElementById('findnight').onclick=function(){ff.click();};
+    ff.onchange=function(){var fl=Array.prototype.slice.call(ff.files);ff.value='';findScan(fl);};
+    document.getElementById('manual').onclick=function(){S.mode='roll';S.editing=false;S.phase='setup';render();};
+    document.getElementById('nb').onclick=function(){S.phase='home';render();};
+  }
+  function findScan(files){
+    var arr=Array.prototype.slice.call(files).map(function(f){return {f:f,k:f.name+'|'+f.size+'|'+f.lastModified};});
+    if(!arr.length)return;
+    S.find={state:'scan',done:0,total:arr.length,sessions:[]};S.phase='find';render();
+    pool(arr,6,function(it){return readTaken(it.f).then(function(t){it.t=t;});},function(d){S.find.done=d;scheduleRender();}).then(function(){
+      arr.sort(function(a,b){return a.t-b.t;});
+      var ss=[],cur=null;
+      arr.forEach(function(it){
+        if(!cur||it.t-cur.last>GAP){cur={first:it.t,last:it.t,items:[it]};ss.push(cur);}
+        else{cur.last=it.t;cur.items.push(it);}
+      });
+      var big=ss.filter(function(x){return x.items.length>=2;});
+      if(!big.length)big=ss;
+      big.sort(function(a,b){return b.items.length-a.items.length||b.last-a.last;});
+      S.find={state:'choose',total:arr.length,sessions:big.slice(0,4)};
+      render();
     });
+  }
+  function findScreen(){
+    var F=S.find||{state:'choose',sessions:[],total:0},h='<div class="brand">new roll</div>';
+    if(F.state==='scan'){
+      var pct=F.total?Math.round(100*F.done/F.total):0;
+      app.innerHTML=h+'<h2 class="mid">Reading your photos</h2><p>Looking at when each one was taken.</p><div class="prog"><i style="width:'+pct+'%"></i></div><p class="tiny">'+F.done+' of '+F.total+'</p>';
+      return;
+    }
+    var n=F.sessions.length;
+    h+='<h2 class="mid">'+(n>1?'Which night?':'We found your night')+'</h2><p>'+(n>1?'Your photos come from '+n+' different stretches of time. Pick the one to turn into a zine.':'Is this the night you want?')+'</p>';
+    F.sessions.forEach(function(x,i){
+      h+='<button class="night" data-s="'+i+'"><b>'+esc(nightName(x.first,x.last))+'</b><span>'+fmtDate(x.first)+' &middot; '+fmt(x.first)+' to '+fmt(x.last)+'</span><em>'+x.items.length+' photo'+(x.items.length>1?'s':'')+'</em></button>';
+    });
+    h+='<p class="tiny">Photos from other times are left out. You can change the name and times afterward.</p><div class="spacer"></div>'+
+      '<div style="text-align:center"><button class="link" id="manual2">Set the times myself instead</button></div>'+navBar('Back',null,false);
+    app.innerHTML=h;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-s]'),function(b){b.onclick=function(){useSession(F.sessions[+b.getAttribute('data-s')]);};});
+    document.getElementById('manual2').onclick=function(){S.mode='roll';S.editing=false;S.phase='setup';render();};
+    document.getElementById('nb').onclick=function(){S.phase='start';render();};
+  }
+  function useSession(sess){
+    var start=Math.floor(sess.first/60000)*60000-5*60000;
+    var end=Math.ceil(sess.last/60000)*60000+5*60000;
+    end=Math.max(sess.last+60000,Math.min(end,Date.now()));
+    S.mode='roll';S.name=nightName(sess.first,sess.last);S.start=start;S.end=end;
+    S.photos=[];S.seen={};S.grace=0;S.sel=[];S.design=null;S.rejected=[];S.err=null;S.editing=false;S.find=null;
+    sess.items.forEach(function(it){S.seen[it.k]=1;});
+    S.busy=sess.items.length;S.prep={done:0,total:sess.items.length};S.phase='roll';save();render();
+    idbClear().then(function(){return ingest(sess.items);}).then(finish);
   }
 
   function pick(){
@@ -729,7 +868,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
   function render(){
     var p=S.phase;
     if(p==='home')home();else if(p==='setup')setup();
-    else if(p==='roll')roll();else if(p==='quick')quick();
+    else if(p==='roll')roll();else if(p==='quick')quick();else if(p==='start')startScreen();else if(p==='find')findScreen();
     else if(p==='pick')pick();else if(p==='developing')developing();
     else if(p==='ready'){if(!S.design||!window.ZineEngine||!validDesign()){S.phase=S.photos.length?'pick':(S.mode==='quick'?'quick':'roll');return render();}ready();}
     else if(p==='custom'){if(!S.design||!window.ZineEngine){S.phase='ready';return render();}custom();}
@@ -749,6 +888,8 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     var tl=document.getElementById('tl');
     if(tl&&st!=='closed')tl.textContent=left(st==='waiting'?S.start-Date.now():S.end-Date.now())+(st==='waiting'?' until start':' remaining');
   },1000);
+
+  if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
 
   /* ---------- start up: restore a roll in progress, photos and design included ---------- */
   var m=meta();
