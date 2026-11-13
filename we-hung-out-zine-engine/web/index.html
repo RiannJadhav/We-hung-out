@@ -19,10 +19,9 @@
 <meta property="og:image" content="og.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/bricolage-800.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/bricolage-var.woff2">
 <style>
-@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/bricolage-500.woff2) format("woff2")}
-@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:800;font-display:swap;src:url(fonts/bricolage-800.woff2) format("woff2")}
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:200 800;font-display:swap;src:url(fonts/bricolage-var.woff2) format("woff2")}
 @font-face{font-family:"Caveat";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/caveat-600.woff2) format("woff2")}
 :root{
   --flash-blue:#2b3bff; --flash-yellow:#ffd93b; --print-white:#fbfaf6;
@@ -153,6 +152,8 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
 .night span{display:block;font-size:16px;margin-top:2px}
 .night em{font-style:normal;font-family:var(--hand);font-size:22px;color:var(--flash-blue)}
 .credit a{color:inherit}
+.credit .legal{margin-top:16px;font-family:var(--display);font-weight:500;font-size:13px;letter-spacing:.02em}
+.credit .legal a{display:inline-block;padding:6px 14px;text-decoration:underline;text-underline-offset:3px}
 .msg{min-height:22px;text-align:center;font-size:15px;margin:10px 0 0}
 .msg a{color:var(--flash-yellow)}
 </style>
@@ -162,9 +163,9 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
 <main id="app" aria-live="polite">
 <div class="brand">we hung out</div><h1 class="big">Turn your night into a zine.</h1>
 <p>Start a roll. Take photos like normal. When it ends, we develop your night into something you can hold.</p>
-<p><a href="about.html" style="color:inherit">Read the overview</a> &middot; <a href="privacy.html" style="color:inherit">Privacy</a></p>
+<p style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">Overview for people and AI tools: <a href="about.html">about.html</a>. Privacy: <a href="privacy.html">privacy.html</a>.</p>
 </main>
-<footer class="credit">made by Riann &middot; <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> &middot; <a href="about.html" target="_blank" rel="noopener">About</a></footer>
+<footer class="credit">made by Riann<div class="legal"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a></div></footer>
 <script>
 (function(){
   var app=document.getElementById('app');
@@ -304,7 +305,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     '<div class="spacer"></div><button class="btn shutter" id="go" style="width:min(58vw,230px);font-size:25px">START A ROLL</button>'+
     '<div style="height:22px"></div><button class="btn alt" id="quick" style="align-self:center">Make a zine now</button>'+
     '<p class="tiny" style="text-align:center;max-width:none">Any photos, any time. No roll needed.</p><div class="spacer"></div>';
-    document.getElementById('go').onclick=function(){S.mode='roll';S.editing=false;S.phase='start';render();};
+    document.getElementById('go').onclick=function(){S.mode='roll';S.editing=false;S.phase='setup';render();};
     document.getElementById('quick').onclick=function(){S.mode='quick';S.name='My zine';S.photos=[];S.seen={};S.sel=[];S.design=null;S.err=null;S.rejected=[];S.start=0;S.end=0;idbClear();S.phase='quick';save();render();};
   }
 
@@ -319,7 +320,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     '<div><label for="en">Ends</label><input type="time" id="en" value="'+hhmm(en)+'"></div></div>'+
     '<p class="tiny">Only photos taken between these two times are kept.</p><div class="spacer"></div>'+
     navBar(ed?'Back':'Back',ed?'Save':'Start roll');
-    document.getElementById('nb').onclick=function(){S.phase=ed?'roll':'start';render();};
+    document.getElementById('nb').onclick=function(){S.phase=ed?'roll':'home';render();};
     document.getElementById('nn').onclick=function(){
       var dv=(document.getElementById('dt').value||ymd(new Date())).split('-');
       var t=function(id){var v=document.getElementById(id).value.split(':');return new Date(+dv[0],+dv[1]-1,+dv[2],+v[0],+v[1],0,0).getTime();};
@@ -357,6 +358,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     html+='<div class="spacer"></div><input type="file" id="file" accept="image/*" multiple>';
     var canAdd=!S.busy&&(st==='active'||closed);
     html+='<button class="btn alt" id="add"'+(canAdd?'':' disabled')+'>'+(S.busy?'Adding... '+S.busy+' left':'Add photos')+'</button>';
+    if(!S.photos.length&&!S.busy)html+='<input type="file" id="ffile" accept="image/*" multiple><div style="text-align:center"><button class="link" id="findlink">Not sure of the times? Find my night from photos</button></div>';
     var canPick=closed&&S.photos.length&&!S.busy;
     html+=navBar('Back','Pick your 8',!canPick);
     if(!closed){
@@ -369,6 +371,8 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     document.getElementById('add').onclick=function(){file.click();};
     file.onchange=function(){addFiles(file.files,false);file.value='';};
     document.getElementById('edit').onclick=function(){S.editing=true;S.phase='setup';render();};
+    var fl=document.getElementById('findlink'),ff=document.getElementById('ffile');
+    if(fl&&ff){fl.onclick=function(){ff.click();};ff.onchange=function(){var arr=Array.prototype.slice.call(ff.files);ff.value='';findScan(arr);};}
     var fo=document.getElementById('force');
     if(fo)fo.onclick=function(){var files=S.rejected.map(function(r){return r.f;});S.rejected=[];addFiles(files,true);};
     document.getElementById('nb').onclick=function(){S.editing=true;S.phase='setup';render();};
@@ -515,18 +519,6 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
     var part=(h>=20||h<5)?'night':h<12?'morning':h<17?'afternoon':'evening';
     return DAYS[new Date(first).getDay()]+' '+part;
   }
-  function startScreen(){
-    app.innerHTML='<div class="brand">new roll</div><h2 class="mid">How do you want to start?</h2>'+
-      '<input type="file" id="ffile" accept="image/*" multiple>'+
-      '<button class="opt y" id="findnight"><b>Find my night</b><span>Pick photos from your gallery. We read their dates, find the night, and set the times for you.</span></button>'+
-      '<button class="opt w" id="manual"><b>Set the times myself</b><span>Start a roll now and add photos as the night goes.</span></button>'+
-      '<div class="spacer"></div>'+navBar('Back',null,false);
-    var ff=document.getElementById('ffile');
-    document.getElementById('findnight').onclick=function(){ff.click();};
-    ff.onchange=function(){var fl=Array.prototype.slice.call(ff.files);ff.value='';findScan(fl);};
-    document.getElementById('manual').onclick=function(){S.mode='roll';S.editing=false;S.phase='setup';render();};
-    document.getElementById('nb').onclick=function(){S.phase='home';render();};
-  }
   function findScan(files){
     var arr=Array.prototype.slice.call(files).map(function(f){return {f:f,k:f.name+'|'+f.size+'|'+f.lastModified};});
     if(!arr.length)return;
@@ -561,8 +553,8 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
       '<div style="text-align:center"><button class="link" id="manual2">Set the times myself instead</button></div>'+navBar('Back',null,false);
     app.innerHTML=h;
     Array.prototype.forEach.call(document.querySelectorAll('[data-s]'),function(b){b.onclick=function(){useSession(F.sessions[+b.getAttribute('data-s')]);};});
-    document.getElementById('manual2').onclick=function(){S.mode='roll';S.editing=false;S.phase='setup';render();};
-    document.getElementById('nb').onclick=function(){S.phase='start';render();};
+    document.getElementById('manual2').onclick=function(){S.editing=true;S.phase='setup';render();};
+    document.getElementById('nb').onclick=function(){S.phase='roll';render();};
   }
   function useSession(sess){
     var start=Math.floor(sess.first/60000)*60000-5*60000;
@@ -868,7 +860,7 @@ input[type=range]{width:100%;accent-color:var(--flash-yellow);margin:8px 0 0}
   function render(){
     var p=S.phase;
     if(p==='home')home();else if(p==='setup')setup();
-    else if(p==='roll')roll();else if(p==='quick')quick();else if(p==='start')startScreen();else if(p==='find')findScreen();
+    else if(p==='roll')roll();else if(p==='quick')quick();else if(p==='find')findScreen();
     else if(p==='pick')pick();else if(p==='developing')developing();
     else if(p==='ready'){if(!S.design||!window.ZineEngine||!validDesign()){S.phase=S.photos.length?'pick':(S.mode==='quick'?'quick':'roll');return render();}ready();}
     else if(p==='custom'){if(!S.design||!window.ZineEngine){S.phase='ready';return render();}custom();}

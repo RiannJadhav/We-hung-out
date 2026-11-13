@@ -42,7 +42,7 @@ keep the signing key PWABuilder gives you somewhere safe. Icon source: a
 yellow shutter circle with "WHO" on the app's blue (`icons/maskable-512.png`
 keeps everything inside Android's circular safe zone).
 
-**Find my night.** On "Start a roll > Find my night" the person picks a
+**Find my night.** On the roll screen (shown only while the roll has no photos yet), the "Find my night from photos" link lets the person pick a
 batch of photos; capture times are read (EXIF, file date as a fallback),
 split into sessions at gaps over 2 hours, and the app proposes the biggest
 nights. Only the chosen night's photos are resized and kept. Photos are

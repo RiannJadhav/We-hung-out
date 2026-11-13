@@ -1,9 +1,9 @@
 // Network-first service worker: the site always loads the newest version
 // when online (so updates show up in the installed app too), and falls
 // back to the last copy it saw when offline.
-var CACHE = 'who-v1';
+var CACHE = 'who-v2';
 var SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png',
-  'fonts/bricolage-500.woff2', 'fonts/bricolage-800.woff2', 'fonts/caveat-600.woff2'];
+  'fonts/bricolage-var.woff2', 'fonts/caveat-600.woff2'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
